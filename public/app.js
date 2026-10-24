@@ -63,6 +63,7 @@ socket.on('connect', () => {
 socket.on('disconnect', () => toast('Bağlantı koptu, yeniden bağlanıyor…'));
 socket.on('kicked', msg => { toast(msg); S = null; show('landing'); });
 socket.on('state', st => { prev = S; S = st; skew = st.now - Date.now(); render(); });
+Voice.init(socket, () => S, () => renderVoice());
 
 let toastT;
 function toast(t){ const el = $('#toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 2600); }
@@ -273,6 +274,7 @@ function renderGame(){
   if (key !== ui.key){ ui = { kind:null, targets:[], key }; transition(prev && prev.phase !== 'lobby' ? prev : null); }
   updateOffices();
   renderRole(); renderAct(); renderLog(); renderChat($('#chat')); refreshChatInput();
+  Voice.sync(); renderVoice();
   if (prev && S.mine && S.mine.report && !(prev.mine && prev.mine.report && prev.mine.report.day === S.mine.report.day)) reportAnim(S.mine.report);
 }
 
@@ -453,6 +455,44 @@ function onPick(id){
     else ui.targets = [...ui.targets, id].slice(-opt.targets);
     renderAct();
   } else if (S.phase === 'meeting' && me().alive && id !== S.meId && P(id).alive) socket.emit('vote', { target: id });
+}
+
+/* ---------- sesli sohbet ---------- */
+$('#voiceBtn').onclick = () => {
+  const st = Voice.status();
+  if (st.enabled) return Voice.disable();
+  Voice.enable().catch(e => toast(e && e.name === 'NotAllowedError' ? 'Mikrofon izni verilmedi. Tarayıcı ayarlarından izin verip tekrar dene.' : 'Mikrofon açılamadı.'));
+};
+const ptt = $('#pttBtn');
+const pttOn = e => { e.preventDefault(); try { ptt.setPointerCapture(e.pointerId); } catch {} Voice.setPtt(true); };
+const pttOff = () => Voice.setPtt(false);
+ptt.addEventListener('pointerdown', pttOn);
+ptt.addEventListener('pointerup', pttOff);
+ptt.addEventListener('pointercancel', pttOff);
+ptt.addEventListener('lostpointercapture', pttOff);
+ptt.addEventListener('contextmenu', e => e.preventDefault());
+function renderVoice(){
+  if (!S || S.phase === 'lobby') return;
+  const st = Voice.status(); const m = me();
+  const vb = $('#voiceBtn');
+  vb.textContent = st.starting ? 'Mikrofon açılıyor…' : st.enabled ? 'Sesten çık' : 'Sesli sohbete katıl';
+  vb.disabled = !st.supported || st.starting;
+  vb.classList.toggle('primary', !st.enabled);
+  ptt.hidden = !(st.enabled && st.canTalk);
+  ptt.classList.toggle('on', st.speaking);
+  ptt.textContent = st.speaking ? 'Konuşuyorsun…' : 'Basılı tut, konuş';
+  const others = S.players.filter(p => p.voice && p.id !== S.meId).length;
+  $('#voiceStat').textContent = !st.supported ? 'Bu tarayıcı sesli sohbeti desteklemiyor.'
+    : !st.enabled ? (others ? `${others} kişi seste. Katılınca toplantıda konuşabilirsin.` : 'Toplantıda konuşmak için sesli sohbete katıl.')
+    : `Seste ${others + 1} kişi, ${st.connected}/${st.peers} bağlantı kuruldu.`;
+  const mic = $('#mic'), tx = $('#micTx');
+  mic.classList.toggle('on', st.speaking);
+  tx.textContent = !st.enabled ? 'Ses kapalı'
+    : st.speaking ? 'Konuşuyorsun'
+    : S.phase !== 'meeting' ? 'Ses sadece toplantıda'
+    : !m.alive ? 'Dinliyorsun'
+    : 'Space basılı tut';
+  stage.querySelectorAll('.avatar').forEach(a => a.classList.toggle('talk', Voice.isTalking(+a.dataset.id)));
 }
 
 /* ---------- bildirimler ---------- */

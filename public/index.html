@@ -74,8 +74,14 @@
         <div id="offices"></div>
         <div id="fx"></div>
         <div class="caption" id="caption" role="status"></div>
+        <div class="mic" id="mic"><s></s><span id="micTx">Ses kapalı</span></div>
       </div>
-      <p class="hint">Gece hedefini ve toplantıda oyunu ofislere ya da masadaki kişilere tıklayarak da seçebilirsin. Sesli sohbet bir sonraki sürümde geliyor, şimdilik toplantıda yazışın. <a href="roller.html" target="_blank" rel="noopener">Roller</a></p>
+      <div class="voicebar" id="voicebar">
+        <button class="btn" id="voiceBtn" type="button">Sesli sohbete katıl</button>
+        <button class="btn ptt" id="pttBtn" type="button" hidden>Basılı tut, konuş</button>
+        <span class="note" id="voiceStat"></span>
+      </div>
+      <p class="hint">Toplantıda konuşmak için <kbd>Space</kbd> tuşunu basılı tut (telefonda düğmeyi). Sadece toplantıda ve hayattaysan konuşabilirsin, düşenler dinler. Gece hedefini ve oyunu ofislere ya da masadaki kişilere tıklayarak da seçebilirsin. <a href="roller.html" target="_blank" rel="noopener">Roller</a></p>
     </div>
     <aside class="side">
       <section class="box rolecard" id="roleBox"></section>
@@ -102,6 +108,7 @@
 <div class="toast" id="toast" role="status"></div>
 
 <script src="/socket.io/socket.io.js"></script>
+<script src="voice.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

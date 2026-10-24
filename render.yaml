@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: who-broke-prod
+    name: whobrokeprod
     runtime: node
     plan: free
     buildCommand: npm install

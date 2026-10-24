@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prod'da Hain Var · Who Broke Prod?</title>
+<meta name="description" content="Yazılım dünyası karakterleriyle oynanan çok oyunculu sosyal çıkarım oyunu.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- giriş -->
+<main class="screen landing" id="landing" hidden>
+  <div class="landcard">
+    <img class="hero" src="hero.jpg" alt="Prod'da Hain Var: Tech Team ofisinde endişeli yazılımcılar, köşede kapüşonlu bir hacker">
+    <div class="landbody">
+      <h1>Prod'da <span>Hain</span> Var <small>Who Broke Prod?</small></h1>
+      <p>Ekip prod'u ayakta tutmaya çalışıyor, aralarındaki sabotajcılar gizlice çökertmeye. 5 ile 12 kişi arası, herkes kendi cihazından.</p>
+      <div class="field"><label for="nameIn">Adın</label><input id="nameIn" maxlength="14" autocomplete="nickname" placeholder="Örn. Burak"></div>
+      <div class="landactions">
+        <button class="btn primary" id="createBtn" type="button">Oda kur</button>
+        <span class="or">ya da</span>
+        <div class="joinrow"><input id="codeIn" maxlength="4" placeholder="Oda kodu" autocomplete="off" aria-label="Oda kodu"><button class="btn" id="joinBtn" type="button">Katıl</button></div>
+      </div>
+      <p class="err" id="landErr" role="alert"></p>
+      <p class="note"><a href="roller.html" target="_blank" rel="noopener">Roller ve özellikleri</a> · <a href="demo/" target="_blank" rel="noopener">Botlarla tek kişilik demo</a></p>
+    </div>
+  </div>
+</main>
+
+<!-- lobi -->
+<main class="screen wrap" id="lobby" hidden>
+  <header class="top">
+    <div class="logo">Prod'da <span>Hain</span> Var<small>WHO BROKE PROD?</small></div>
+    <div class="phase"><div class="pl"><b>Lobi</b><span id="lobbyCount"></span></div><span class="timer" id="lobbyCode"></span></div>
+  </header>
+  <div class="main">
+    <section class="col-wide">
+      <div class="box">
+        <h3>Davet linki</h3>
+        <div class="invite"><input id="inviteIn" readonly aria-label="Davet linki"><button class="btn" id="copyBtn" type="button">Kopyala</button></div>
+        <p class="note">Linki arkadaşlarına gönder. Odaya kod ile de katılabilirler.</p>
+      </div>
+      <div class="box">
+        <h3>Oyuncular</h3>
+        <ul class="plist" id="plist"></ul>
+        <div class="row2" id="hostRow"><button class="btn" id="addBotBtn" type="button">Bot ekle</button><span class="note">Az kişiyle denemek için botlar oyunu doldurur.</span></div>
+      </div>
+      <div class="box" id="settingsBox"></div>
+      <div class="row2"><button class="btn primary big" id="startBtn" type="button">Oyunu başlat</button><button class="btn" id="leaveBtn" type="button">Odadan çık</button><span class="err" id="lobbyErr" role="alert"></span></div>
+    </section>
+    <aside class="side">
+      <section class="box"><h3>Sohbet</h3><div class="chat" id="lobbyChat" aria-live="polite"></div>
+        <form class="chatin" id="lobbyChatForm"><input id="lobbyChatIn" autocomplete="off" maxlength="200" placeholder="Lobiye yaz"><button class="btn" type="submit">Gönder</button></form></section>
+      <p class="note"><a href="roller.html" target="_blank" rel="noopener">Roller ve özellikleri</a></p>
+    </aside>
+  </div>
+</main>
+
+<!-- oyun -->
+<main class="screen wrap" id="game" hidden>
+  <header class="top">
+    <div class="logo">Prod'da <span>Hain</span> Var<small id="codeTag"></small></div>
+    <div class="phase"><div class="pl"><b id="phName"></b><span id="phSub"></span></div><span class="timer" id="timer">--</span></div>
+  </header>
+  <div class="main">
+    <div class="stagecol">
+      <div class="stage" id="stage">
+        <div class="bgN"></div><div class="bgD"></div>
+        <div class="tablewrap" id="tablewrap"></div>
+        <div id="offices"></div>
+        <div id="fx"></div>
+        <div class="caption" id="caption" role="status"></div>
+      </div>
+      <p class="hint">Gece hedefini ve toplantıda oyunu ofislere ya da masadaki kişilere tıklayarak da seçebilirsin. Sesli sohbet bir sonraki sürümde geliyor, şimdilik toplantıda yazışın. <a href="roller.html" target="_blank" rel="noopener">Roller</a></p>
+    </div>
+    <aside class="side">
+      <section class="box rolecard" id="roleBox"></section>
+      <section class="box" id="actBox"></section>
+      <section class="box" id="logBox" hidden><h3>Sana özel bildirimler</h3><div class="log" id="log"></div></section>
+      <section class="box">
+        <h3 id="chatTitle">Sohbet</h3>
+        <div class="chat" id="chat" aria-live="polite"></div>
+        <form class="chatin" id="chatForm"><input id="chatIn" autocomplete="off" maxlength="200"><button class="btn" type="submit" id="chatSend">Gönder</button></form>
+      </section>
+    </aside>
+  </div>
+</main>
+
+<div class="overlay" id="endBox" hidden>
+  <div class="dialog">
+    <h2 id="endTitle"></h2>
+    <p id="endSub"></p>
+    <div class="reveal" id="endReveal"></div>
+    <div class="row2"><button class="btn primary" id="againBtn" type="button">Lobiye dön</button><button class="btn" id="closeEnd" type="button">Kapat</button><span class="note" id="againNote"></span></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

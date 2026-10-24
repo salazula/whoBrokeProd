@@ -6,8 +6,26 @@ Yazılım dünyası karakterleriyle oynanan, Feign tarzı bir sosyal çıkarım 
 
 ## Durum
 
-- `demo/` botlara karşı tek kişilik, tarayıcıda çalışan bir demo. Tek bir HTML dosyası, kurulum gerektirmez: `demo/index.html` dosyasını tarayıcıda aç.
-- Gerçek çok oyunculu sürüm (odalar, davet linki, sesli toplantı) henüz yazılmadı.
+- **Çok oyunculu oyun (sessiz sürüm):** oda kurma, davet linki, lobi ayarları (otomatik/özel rol dağıtımı, hain ayarı), bütün roller, gece hamleleri, sabah raporu, toplantıda yazılı sohbet ve oylama, PO vetosu, oyun sonu. Az kişiyle denemek için lobide bot eklenebilir.
+- **Sırada:** toplantıda sesli sohbet (WebRTC, Space basılı tutarak).
+- `demo/` botlara karşı tek kişilik eski demo. Sunucuda `/demo/` adresinden açılır.
+- Roller ve özellikleri: `/roller.html`
+
+## Çalıştırma
+
+```bash
+npm install
+npm start          # http://localhost:3000
+npm test           # botlarla hızlandırılmış 50 oyun oynatır (birkaç dakika)
+```
+
+Roller ve oyun durumu yalnızca sunucuda tutulur, her oyuncuya sadece kendi görmesi gereken bilgi gider. Sayfayı yenileyen ya da bağlantısı kopan oyuncu aynı tarayıcıdan oyuna geri döner.
+
+## Render'a yayınlama
+
+1. [Render](https://render.com) hesabıyla giriş yap, **New → Blueprint** seç ve bu repoyu bağla. `render.yaml` servisi kendisi tanımlar (ücretsiz plan, Node).
+2. İlk kurulum birkaç dakika sürer. Bitince `https://<servis-adı>.onrender.com` adresi oyunun linkidir.
+3. Ücretsiz planda servis 15 dakika boş kalınca uyur, ilk giren kişi 30-50 saniye bekler.
 
 ## Oyun akışı
 

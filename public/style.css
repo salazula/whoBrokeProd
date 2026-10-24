@@ -61,6 +61,7 @@ input:disabled{opacity:.5}
 .btn:hover:not(:disabled){border-color:var(--accent)}
 .btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
 .btn.big{padding:11px 20px;font-size:16px}
+.btn.small{padding:6px 11px;font-size:13px;min-height:34px}
 .btn.danger{background:var(--evil);border-color:var(--evil);color:#1A0610;font-weight:600}
 .btn:disabled{opacity:.45;cursor:default}
 .btn[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}

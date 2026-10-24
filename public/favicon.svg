@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Prod sunucusu: üst katı çökmüş, kırmızı alarm yanıyor -->
+  <rect width="64" height="64" rx="14" fill="#151A2E"/>
+  <rect x="11" y="13" width="36" height="13" rx="3" fill="#FF6E98" transform="rotate(-9 29 19.5)"/>
+  <circle cx="18.5" cy="20.8" r="2.4" fill="#151A2E" transform="rotate(-9 29 19.5)"/>
+  <rect x="25" y="18.6" width="15" height="3" rx="1.5" fill="#151A2E" opacity=".55" transform="rotate(-9 29 19.5)"/>
+  <rect x="11" y="31" width="36" height="12" rx="3" fill="#DCE3F5"/>
+  <circle cx="18" cy="37" r="2.3" fill="#3FCDB8"/>
+  <rect x="25" y="35.5" width="15" height="3" rx="1.5" fill="#8A95B8"/>
+  <rect x="11" y="46" width="36" height="12" rx="3" fill="#DCE3F5"/>
+  <circle cx="18" cy="52" r="2.3" fill="#3FCDB8"/>
+  <rect x="25" y="50.5" width="15" height="3" rx="1.5" fill="#8A95B8"/>
+  <circle cx="50" cy="15" r="10" fill="#FFCF4A"/>
+  <rect x="48.4" y="8.5" width="3.2" height="8.5" rx="1.6" fill="#151A2E"/>
+  <circle cx="50" cy="20.6" r="1.9" fill="#151A2E"/>
+</svg>

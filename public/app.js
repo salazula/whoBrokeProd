@@ -88,7 +88,18 @@ $('#copyBtn').onclick = () => {
 };
 $('#addBotBtn').onclick = () => socket.emit('lobby:addBot');
 $('#startBtn').onclick = () => socket.emit('lobby:start');
-$('#leaveBtn').onclick = () => { socket.emit('room:leave'); store.del('phv'); S = null; history.replaceState(null, '', location.pathname); show('landing'); };
+function leaveRoom(){
+  if (window.Voice) Voice.disable();
+  socket.emit('room:leave'); store.del('phv'); S = null;
+  $('#endBox').hidden = true;
+  history.replaceState(null, '', location.pathname); show('landing');
+}
+$('#leaveBtn').onclick = leaveRoom;
+$('#exitBtn').onclick = () => {
+  // oyun sürerken çıkan oyuncu odada bağlantısı kopmuş gibi kalır, gece hamlesi yapılmaz
+  if (S && S.phase !== 'over' && !confirm('Oyun devam ediyor. Çıkarsan bu oyuna geri dönemezsin. Ana sayfaya dönülsün mü?')) return;
+  leaveRoom();
+};
 
 function renderLobby(){
   const host = isHost();
@@ -435,8 +446,10 @@ function renderAct(){
   }
   if (S.phase === 'verdict' || S.phase === 'over'){
     const v = S.verdict;
-    box.innerHTML = `<h3>Sonuç</h3>${v ? countsHtml() + `<div class="result ${v.outId ? (v.outTeam === 'evil' ? 'evil' : 'town') : ''}">${v.outId ? `<b>${esc(P(v.outId).name)}</b> repodan atıldı. Rolü: <b>${esc(v.outRole)}</b>.` : esc(v.why)}</div>` : ''}${S.phase === 'over' ? '<div class="row2"><button class="btn primary" id="showEnd" type="button">Sonucu göster</button></div>' : ''}${reportButton()}${reportHtml()}`;
+    box.innerHTML = `<h3>Sonuç</h3>${v ? countsHtml() + `<div class="result ${v.outId ? (v.outTeam === 'evil' ? 'evil' : 'town') : ''}">${v.outId ? `<b>${esc(P(v.outId).name)}</b> repodan atıldı. Rolü: <b>${esc(v.outRole)}</b>.` : esc(v.why)}</div>` : ''}${S.phase === 'over' ? `<div class="row2"><button class="btn primary" id="showEnd" type="button">Sonucu göster</button>${isHost() ? '<button class="btn" id="overLobby" type="button">Lobiye dön</button>' : ''}<button class="btn" id="overHome" type="button">Ana sayfa</button></div>` : ''}${reportButton()}${reportHtml()}`;
     const se = $('#showEnd'); if (se) se.onclick = () => showEnd();
+    const ol = $('#overLobby'); if (ol) ol.onclick = () => socket.emit('game:lobby');
+    const oh = $('#overHome'); if (oh) oh.onclick = leaveRoom;
     bindReport(); return;
   }
   box.innerHTML = '';
@@ -616,6 +629,7 @@ function showEnd(){
   if (meP.winner) confetti();
 }
 $('#againBtn').onclick = () => socket.emit('game:lobby');
+$('#homeBtn').onclick = leaveRoom;
 $('#closeEnd').onclick = () => { $('#endBox').hidden = true; };
 function confetti(){
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;

@@ -6,7 +6,7 @@ const { Room } = require('../server/game');
 const { customRoles } = require('../server/roles');
 
 const rnd = a => a[Math.floor(Math.random() * a.length)];
-const GAMES = Number(process.argv[2] || 300);
+const GAMES = Number(process.argv[2] || 50);
 
 function playOne(i) {
   return new Promise((resolve, reject) => {

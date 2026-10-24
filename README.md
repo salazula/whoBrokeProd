@@ -16,7 +16,7 @@ Yazılım dünyası karakterleriyle oynanan, Feign tarzı bir sosyal çıkarım 
 ```bash
 npm install
 npm start          # http://localhost:3000
-npm test           # botlarla hızlandırılmış 300 oyun oynatır
+npm test           # botlarla hızlandırılmış 50 oyun oynatır (birkaç dakika)
 ```
 
 Roller ve oyun durumu yalnızca sunucuda tutulur, her oyuncuya sadece kendi görmesi gereken bilgi gider. Sayfayı yenileyen ya da bağlantısı kopan oyuncu aynı tarayıcıdan oyuna geri döner.

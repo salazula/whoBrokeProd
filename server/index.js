@@ -18,6 +18,12 @@ app.get('/roles.json', (req, res) => res.json(Object.entries(ROLES).map(([key, r
   key, name: r.name, team: r.team, teamName: TEAM_NAME[r.team], desc: r.desc, verb: r.verb, color: r.color,
   uses: [5, 9, 11].map(n => { const u = usesFor(key, n); return u === Infinity ? 'sınırsız' : u; }),
 }))));
+// Sesli sohbet için ICE sunucuları. TURN ortam değişkenleriyle eklenir (bazı ağlarda gerekli).
+app.get('/ice.json', (req, res) => {
+  const ice = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }];
+  if (process.env.TURN_URL) ice.push({ urls: process.env.TURN_URL.split(',').map(s => s.trim()), username: process.env.TURN_USERNAME || '', credential: process.env.TURN_CREDENTIAL || '' });
+  res.json(ice);
+});
 app.get('/health', (req, res) => res.json({ ok: true, rooms: rooms.size }));
 
 const rooms = new Map();
@@ -111,6 +117,20 @@ io.on('connection', socket => {
   on('vote', (room, p, d) => room.vote(p, d.target));
   on('po:veto', (room, p) => room.veto(p));
   on('chat', (room, p, d) => room.say(p, d.text));
+  // sesli sohbet: katılım, WebRTC sinyal aktarımı ve konuşma göstergesi
+  on('voice:on', (room, p, d) => { p.voice = !!d.on && !p.isBot; if (!p.voice) p.talking = false; room.changed(); });
+  on('rtc:signal', (room, p, d) => {
+    const to = room.byId(Number(d.to));
+    if (!to || to === p || !to.socketId || !p.voice || !d.data || JSON.stringify(d.data).length > 20000) return;
+    const s = io.sockets.sockets.get(to.socketId);
+    if (s) s.emit('rtc:signal', { from: p.id, data: d.data });
+  });
+  on('voice:talk', (room, p, d) => {
+    const on = !!d.on && room.canTalk(p);
+    if (on === !!p.talking) return;
+    p.talking = on;
+    io.to(room.code).emit('voice:talk', { id: p.id, on });
+  });
   on('game:lobby', (room, p) => room.backToLobby(p.id));
 
   socket.on('disconnect', () => {
@@ -118,6 +138,7 @@ io.on('connection', socket => {
     const { room, player } = c;
     if (player.socketId !== socket.id) return;
     player.socketId = null; player.connected = false; player.lastSeen = Date.now();
+    player.voice = false; player.talking = false;
     room.changed();
     if (room.phase === 'night') room.checkNightDone();
   });

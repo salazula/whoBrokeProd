@@ -27,6 +27,12 @@ Roller ve oyun durumu yalnızca sunucuda tutulur, her oyuncuya sadece kendi gör
 2. İlk kurulum birkaç dakika sürer. Bitince `https://<servis-adı>.onrender.com` adresi oyunun linkidir.
 3. Ücretsiz planda servis 15 dakika boş kalınca uyur, ilk giren kişi 30-50 saniye bekler.
 
+## Sesli sohbet
+
+Oyunda "Sesli sohbete katıl" düğmesiyle mikrofon açılır. Ses tarayıcılar arasında doğrudan (WebRTC) gider, sunucu sadece bağlantıyı kurar. Sadece toplantıda ve hayattaysan Space (telefonda düğme) basılıyken konuşursun. Düşenler dinler, konuşamaz.
+
+Çoğu ev ve mobil ağda ek ayar gerekmez. Bazı şirket ağlarında ses gitmezse Render'da bir TURN sunucusu tanımlanabilir: `TURN_URL` (virgülle birden fazla), `TURN_USERNAME`, `TURN_CREDENTIAL`.
+
 ## Oyun akışı
 
 1. **Gece:** herkes ofisinde. Roller gizlice hamle yapar, sabotajcılar `#sabotaj` kanalında yazışır.

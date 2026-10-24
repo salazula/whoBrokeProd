@@ -138,6 +138,7 @@ class Room {
   setPhase(phase, secs, next) {
     clearTimeout(this.timer);
     this.phase = phase;
+    if (phase !== 'meeting') for (const p of this.players) p.talking = false;
     this.timerEnd = secs ? Date.now() + secs * 1000 * SCALE : null;
     if (secs) this.timer = setTimeout(() => next(), secs * 1000 * SCALE);
     this.changed();
@@ -472,6 +473,9 @@ class Room {
     this.changed();
   }
 
+  // Sesli sohbet: sadece toplantıda ve hayattaysan konuşabilirsin
+  canTalk(p) { return p.alive && p.role != null && this.phase === 'meeting'; }
+
   // ---------- sohbet ----------
   say(p, text) {
     text = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 200);
@@ -519,7 +523,7 @@ class Room {
     const over = this.phase === 'over';
     const myEvil = me.role && this.isEvil(me);
     const players = this.players.map((p, seat) => ({
-      id: p.id, name: p.name, seat, isBot: p.isBot, connected: p.connected, isHost: p.id === this.hostId, alive: p.alive,
+      id: p.id, name: p.name, seat, isBot: p.isBot, connected: p.connected, voice: !!p.voice, isHost: p.id === this.hostId, alive: p.alive,
       role: (p.role && (!p.alive || over || p.id === me.id)) ? this.roleLabel(p) : (p.poRevealed ? 'Product Owner' : null),
       team: (p.role && (!p.alive || over || p.id === me.id)) ? this.team(p) : (p.poRevealed ? 'town' : null),
       mate: !!(myEvil && p.id !== me.id && p.role && this.isEvil(p)),

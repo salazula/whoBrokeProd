@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Roller · Prod'da Hain Var</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Roller rehberi: üstte kısa kurallar, altında takım takım rol kartları. Oyunun koyu dünyasıyla tek tema. */
+:root{
+  --bg:#0B0E1F; --surface:#151935; --surface-2:#1C2145; --ink:#E4E7F8; --muted:#979EC6; --line:#2B3264;
+  --accent:#A99CFF; --town:#3FCDB8; --evil:#FF6E98; --neutral:#F2B850;
+  --display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55}
+a{color:var(--accent)}
+.wrap{max-width:1180px;margin:0 auto;padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:30px}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px 24px;padding-bottom:18px;border-bottom:1px solid var(--line)}
+header small{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+h1{margin:4px 0 0;font-family:var(--display);font-weight:800;font-size:clamp(30px,5vw,46px);line-height:1;letter-spacing:-.02em}
+h1 span{color:var(--evil)}
+header p{margin:0;max-width:52ch;color:#C9CDEB}
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.rule{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:4px}
+.rule b{font-family:var(--display);font-size:17px}
+.rule span{font-size:14px;color:#C9CDEB}
+.rule em{font-style:normal;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+section{display:flex;flex-direction:column;gap:14px}
+h2{margin:0;display:flex;align-items:baseline;gap:12px;font-family:var(--display);font-weight:800;font-size:clamp(22px,3vw,28px);letter-spacing:-.01em}
+h2 small{font-family:var(--body);font-weight:400;font-size:14px;color:var(--muted)}
+h2.town{color:var(--town)} h2.evil{color:var(--evil)} h2.neutral{color:var(--neutral)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.role{background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--c);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.role h3{margin:0;font-family:var(--display);font-weight:800;font-size:21px;line-height:1.15}
+.role p{margin:0;font-size:14.5px;color:#C9CDEB}
+.meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto}
+.chip{font-family:var(--mono);font-size:11.5px;padding:3px 8px;border-radius:6px;background:var(--surface-2);color:var(--muted);border:1px solid var(--line);white-space:nowrap}
+.chip.act{color:var(--ink)}
+.uses{font-variant-numeric:tabular-nums}
+.callout{background:var(--surface);border:1px dashed var(--evil);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:6px}
+.callout b{font-family:var(--display);font-size:18px;color:var(--evil)}
+.callout p{margin:0;font-size:14.5px;color:#C9CDEB}
+.err{color:var(--evil)}
+footer{font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div><small>Who Broke Prod? · rehber</small><h1>Roller ve <span>özellikleri</span></h1></div>
+    <p>Her oyuncu gizli bir rol alır. Ekip prod'u ayakta tutmaya, Sabotaj çökertmeye çalışır, tarafsızlar kendi hedeflerinin peşindedir. Düşen oyuncunun rolü herkese açıklanır.</p>
+  </header>
+
+  <div class="rules">
+    <div class="rule"><em>1 · Gece</em><b>Herkes ofisinde</b><span>Roller gizlice hamle yapar. Sabotajcılar #sabotaj kanalında yazışır. Herkes hamlesini yapınca gece erken biter.</span></div>
+    <div class="rule"><em>2 · Sabah</em><b>Olay raporu</b><span>Gece düşenler ve gerçek rolleri açıklanır. Hayatta kalanlar toplantı masasına geçer.</span></div>
+    <div class="rule"><em>3 · Standup</em><b>Tartış ve oy ver</b><span>Toplantı sırasında istediğin an birine ya da Atla'ya oy verirsin. Oylar gizlidir, sonuç toplu açıklanır.</span></div>
+    <div class="rule"><em>Atılma</em><b>En çok oy alan gider</b><span>Zirvede eşitlik varsa ya da Atla en yüksek oydan az değilse kimse atılmaz. Product Owner bir kez veto edebilir.</span></div>
+    <div class="rule"><em>Kazanma</em><b>Kim kazanır?</b><span>Ekip, bütün sabotajcılar atılınca kazanır. Sabotaj, sayıca Ekip'e eşit olunca kazanır. Tarafsızların kendi koşulları var.</span></div>
+  </div>
+
+  <div id="roles"><p class="chip">Roller yükleniyor…</p></div>
+
+  <div class="callout">
+    <b>Hain ayarı</b>
+    <p>Oda kurucusu açarsa, Ekip rollerinden biri gizlice hain olur ve Sosyal Mühendis'in yerini alır. Hain hem kendi rolünün yeteneğini hem de hacklemeyi bilir. Her gece hangisini kullanacağını seçer. Kendi yeteneği hak sınırına tabidir, hackleme sınırsızdır. Hacker ile hain aynı gece ayrı ayrı hackleyebilir. Senior Dev haini Sabotaj olarak görür.</p>
+  </div>
+
+  <footer>Hak sayıları oyuncu sayısına göre değişir: 5-8, 9-10 ve 11-12 kişi. Rol dağıtımı otomatik modda oyuncu sayısına göre yapılır, özel modda oda kurucusu her rolden kaç tane olacağını seçer. <a href="./">Oyuna dön</a></footer>
+</div>
+<script>
+(() => {
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  const TEAMS = [['town','Ekip','Prod\'u ayakta tutmaya çalışanlar'],['evil','Sabotaj','Gizlice prod\'u çökertmeye çalışanlar'],['neutral','Tarafsız','Kendi hedefinin peşinde olanlar']];
+  const usesText = u => u.every(x => x === 'sınırsız') ? 'Sınırsız' : u.every(x => x === 0) ? null : u[0] === u[1] && u[1] === u[2] ? `${u[0]} hak` : `5-8 kişi: ${u[0]} · 9-10: ${u[1]} · 11-12: ${u[2]}`;
+  const render = roles => {
+    document.getElementById('roles').innerHTML = TEAMS.map(([k, name, sub]) => `<section><h2 class="${k}">${name} <small>${sub}</small></h2><div class="grid">${roles.filter(r => r.team === k).map(r => {
+      const u = usesText(r.uses);
+      return `<article class="role" style="--c:${r.color}"><h3>${esc(r.name)}</h3><p>${esc(r.desc)}</p><div class="meta">${r.verb ? `<span class="chip act">${esc(r.verb)}</span>` : ''}${u ? `<span class="chip uses">${esc(u)}</span>` : ''}</div></article>`;
+    }).join('')}</div></section>`).join('');
+  };
+  if (window.ROLES_DATA) render(window.ROLES_DATA);
+  else fetch('roles.json').then(r => r.json()).then(render).catch(() => { document.getElementById('roles').innerHTML = '<p class="err">Roller yüklenemedi. Sayfayı yenile.</p>'; });
+})();
+</script>
+</body>
+</html>

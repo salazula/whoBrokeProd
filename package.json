@@ -1,0 +1,19 @@
+{
+  "name": "who-broke-prod",
+  "version": "0.1.0",
+  "description": "Prod'da Hain Var · Who Broke Prod? Yazılım dünyası karakterleriyle çok oyunculu sosyal çıkarım oyunu.",
+  "main": "server/index.js",
+  "private": true,
+  "scripts": {
+    "start": "node server/index.js",
+    "test": "node test/sim.js"
+  },
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "express": "4.21.2",
+    "socket.io": "4.8.1"
+  },
+  "devDependencies": {
+    "socket.io-client": "4.8.1"
+  }
+}

@@ -3,7 +3,7 @@
 // Düşenler dinler ama konuşamaz. Dinleyen taraf da sadece hayattaki oyuncuların sesini toplantıda çalar.
 window.Voice = (() => {
   'use strict';
-  let socket = null, getState = () => null, onChange = () => {};
+  let socket = null, getState = () => null, onChange = () => {}, onHint = () => {};
   let enabled = false, starting = false, stream = null, track = null, ice = null;
   let ptt = false, sentTalk = false;
   const peers = new Map();
@@ -16,15 +16,17 @@ window.Voice = (() => {
   function canTalk(){ const s = S(), m = me(); return !!(s && m && s.phase === 'meeting' && m.alive); }
   function canHear(id){ const s = S(), p = player(id); return !!(s && p && s.phase === 'meeting' && p.alive); }
 
-  function init(sock, stateFn, changeFn){
-    socket = sock; getState = stateFn; onChange = changeFn || onChange;
+  function init(sock, stateFn, changeFn, hintFn){
+    socket = sock; getState = stateFn; onChange = changeFn || onChange; onHint = hintFn || onHint;
     socket.on('rtc:signal', onSignal);
     socket.on('voice:talk', ({ id, on }) => { if (on) talking.add(id); else talking.delete(id); onChange(); });
     socket.on('connect', () => { if (enabled) socket.emit('voice:on', { on: true }); });
     document.addEventListener('keydown', e => {
       // butona odak kalsa bile Space bas-konuş olarak çalışır; yazı alanlarında normal boşluktur
       if (e.code !== 'Space' || e.target.closest('input,textarea,select,[contenteditable]') || !inGame()) return;
-      e.preventDefault(); if (!e.repeat) setPtt(true);
+      e.preventDefault(); if (e.repeat) return;
+      if (!enabled) return onHint('Konuşmak için önce "Sesli sohbete katıl" düğmesine bas.');
+      setPtt(true);
     });
     document.addEventListener('keyup', e => {
       if (e.code !== 'Space' || e.target.closest('input,textarea,select,[contenteditable]') || !inGame()) return;

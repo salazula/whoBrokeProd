@@ -63,7 +63,7 @@ socket.on('connect', () => {
 socket.on('disconnect', () => toast('Bağlantı koptu, yeniden bağlanıyor…'));
 socket.on('kicked', msg => { toast(msg); S = null; show('landing'); });
 socket.on('state', st => { prev = S; S = st; skew = st.now - Date.now(); render(); });
-Voice.init(socket, () => S, () => renderVoice());
+Voice.init(socket, () => S, () => renderVoice(), msg => toast(msg));
 
 let toastT;
 function toast(t){ const el = $('#toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 2600); }

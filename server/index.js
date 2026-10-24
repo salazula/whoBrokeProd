@@ -11,8 +11,10 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { pingInterval: 20000, pingTimeout: 20000 });
 
-app.use(express.static(path.join(__dirname, '..', 'public'), { maxAge: '1h' }));
-app.use('/demo', express.static(path.join(__dirname, '..', 'demo')));
+// html/js/css her seferinde ETag ile doğrulanır: yeni sürüm yayınlanınca tarayıcı eski app.js'i kullanmasın
+const staticOpts = { setHeaders: (res, file) => res.setHeader('Cache-Control', /\.(jpe?g|png|svg)$/.test(file) ? 'public, max-age=86400' : 'no-cache') };
+app.use(express.static(path.join(__dirname, '..', 'public'), staticOpts));
+app.use('/demo', express.static(path.join(__dirname, '..', 'demo'), staticOpts));
 const { ROLES, TEAM_NAME, usesFor } = require('./roles');
 app.get('/roles.json', (req, res) => res.json(Object.entries(ROLES).map(([key, r]) => ({
   key, name: r.name, team: r.team, teamName: TEAM_NAME[r.team], desc: r.desc, verb: r.verb, color: r.color,
